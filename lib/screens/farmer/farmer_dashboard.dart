@@ -1,9 +1,14 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:easy_sidemenu/easy_sidemenu.dart';
 import 'package:flutter_easyloading/flutter_easyloading.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:innotegy/constants.dart';
+import 'package:innotegy/models/farm_model.dart';
 import 'package:innotegy/screens/auth_screen.dart';
 import 'package:innotegy/services/auth_service.dart';
+import 'package:innotegy/services/kml_service.dart';
+import 'package:innotegy/widgets/allocated_farm_card.dart';
 
 class FarmerDashboard
     extends
@@ -27,10 +32,56 @@ class _FarmerDashboardState
   final _controller = SideMenuController();
   final _pageController = PageController();
 
+  final String? _uid = FirebaseAuth.instance.currentUser?.uid;
+
+  final String _myMapsId = '16V-t8nIWuYbt5LpNzJYxa_TDshAZCiA';
+  List<
+    FarmModel
+  >
+  _farms = [];
+  bool _isLoading = true;
+  String? _errorMessage;
+
+  Future<
+    void
+  >
+  _loadAllFarmsFromMap() async {
+    setState(
+      () {
+        _isLoading = true;
+        _errorMessage = null;
+      },
+    );
+
+    try {
+      final fetchedFarms = await KmlService.fetchMyMapsFarms(
+        _myMapsId,
+      );
+      setState(
+        () {
+          _farms = fetchedFarms;
+          _isLoading = false;
+        },
+      );
+    } catch (
+      e
+    ) {
+      setState(
+        () {
+          _errorMessage = e.toString().replaceAll(
+            'Exception: ',
+            '',
+          );
+          _isLoading = false;
+        },
+      );
+    }
+  }
+
   @override
   void initState() {
     super.initState();
-    // Mirror selections to a PageView (or any router)
+    _loadAllFarmsFromMap();
     _controller.addListener(
       () {
         _pageController.jumpToPage(
@@ -53,11 +104,11 @@ class _FarmerDashboardState
   ) {
     return Scaffold(
       appBar: AppBar(
-        leading: Padding(
-          padding: const EdgeInsets.all(
+        leading: const Padding(
+          padding: EdgeInsets.all(
             8.0,
           ),
-          child: const TextField(
+          child: TextField(
             decoration: InputDecoration(
               hintText: 'Search...',
               border: OutlineInputBorder(
@@ -77,9 +128,9 @@ class _FarmerDashboardState
           'assets/logo.png',
           width: 150,
         ),
-        actions: [
+        actions: const [
           Padding(
-            padding: const EdgeInsets.only(
+            padding: EdgeInsets.only(
               right: 16.0,
             ),
             child: CircleAvatar(),
@@ -108,11 +159,8 @@ class _FarmerDashboardState
                             builder:
                                 (
                                   context,
-                                ) => AuthScreen(),
+                                ) => const AuthScreen(),
                           ),
-                        );
-                        print(
-                          'User signed out successfully',
                         );
                       },
                     );
@@ -121,18 +169,15 @@ class _FarmerDashboardState
                   } catch (
                     e
                   ) {
-                    print(
-                      'Error signing out: $e',
-                    );
                     EasyLoading.showError(
                       'Error signing out. Please try again.',
                     );
                   }
                 },
-                label: Text(
+                label: const Text(
                   'Logout',
                 ),
-                icon: Icon(
+                icon: const Icon(
                   Icons.logout_rounded,
                 ),
               ),
@@ -170,301 +215,376 @@ class _FarmerDashboardState
                 controller: _pageController,
                 physics: const NeverScrollableScrollPhysics(),
                 children: [
-                  SingleChildScrollView(
-                    child: Padding(
-                      padding: const EdgeInsets.all(
-                        16.0,
-                      ),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          const SizedBox(
-                            height: 80,
-                          ),
-                          Row(
-                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                            children: [
-                              const Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Text(
-                                    'Farmer Dashboard',
-                                    style: TextStyle(
-                                      fontSize: 24,
-                                      fontWeight: FontWeight.bold,
-                                    ),
-                                  ),
-                                  Text(
-                                    "Good morning, Arthur. Here's what's happening on your farms today.",
-                                    style: TextStyle(
-                                      fontSize: 18,
-                                      fontWeight: FontWeight.w500,
-                                    ),
-                                  ),
-                                ],
-                              ),
-                              Row(
-                                children: [
-                                  ElevatedButton(
-                                    onPressed: () {},
-                                    style: ElevatedButton.styleFrom(
-                                      backgroundColor: primaryGreenColor,
-                                      padding: EdgeInsets.symmetric(
-                                        horizontal: 40,
-                                        vertical: 12,
-                                      ),
-                                      shape: RoundedRectangleBorder(
-                                        borderRadius: BorderRadius.circular(
-                                          8,
-                                        ),
-                                      ),
-                                    ),
-                                    child: const Text(
-                                      'Log Activity',
-                                      style: TextStyle(
-                                        fontWeight: FontWeight.w600,
-                                        color: Colors.white,
-                                      ),
-                                    ),
-                                  ),
-                                  SizedBox(
-                                    width: 16,
-                                  ),
-                                  ElevatedButton(
-                                    onPressed: () {},
-                                    style: ElevatedButton.styleFrom(
-                                      backgroundColor: primaryGreenColor,
-                                      padding: EdgeInsets.symmetric(
-                                        horizontal: 40,
-                                        vertical: 12,
-                                      ),
-                                      shape: RoundedRectangleBorder(
-                                        borderRadius: BorderRadius.circular(
-                                          8,
-                                        ),
-                                      ),
-                                    ),
-                                    child: const Text(
-                                      'Add Task',
-                                      style: TextStyle(
-                                        fontWeight: FontWeight.w600,
-                                        color: Colors.white,
-                                      ),
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ],
-                          ),
+                  StreamBuilder<
+                    DocumentSnapshot<
+                      Map<
+                        String,
+                        dynamic
+                      >
+                    >
+                  >(
+                    stream:
+                        _uid !=
+                            null
+                        ? FirebaseFirestore.instance
+                              .collection(
+                                'farmer',
+                              )
+                              .doc(
+                                _uid,
+                              )
+                              .snapshots()
+                        : null,
+                    builder:
+                        (
+                          context,
+                          snapshot,
+                        ) {
+                          final data = snapshot.data?.data();
+                          final String allocatedFarm =
+                              data?['allocatedFarm'] ??
+                              'No farm allocated';
+                          final String farmerName =
+                              data?['fullName'] ??
+                              'Farmer';
 
-                          Row(
-                            mainAxisAlignment: MainAxisAlignment.start,
-                            children: [
-                              SizedBox(
-                                width: 300,
-                                height: 150,
-                                child: Card(
-                                  child: Padding(
-                                    padding: EdgeInsets.all(
-                                      16.0,
-                                    ),
-                                    child: Column(
-                                      children: [
-                                        Text(
-                                          'Total Area',
-                                          style: TextStyle(
-                                            fontSize: 18,
-                                            fontWeight: FontWeight.w500,
-                                          ),
-                                        ),
-                                        SizedBox(
-                                          height: 8,
-                                        ),
-                                        Text(
-                                          '90 ha',
-                                          style: TextStyle(
-                                            fontSize: 48,
-                                            fontWeight: FontWeight.bold,
-                                          ),
-                                        ),
-                                      ],
-                                    ),
-                                  ),
-                                ),
-                              ),
-                              SizedBox(
-                                width: 300,
-                                height: 150,
-                                child: Card(
-                                  child: Padding(
-                                    padding: EdgeInsets.all(
-                                      16.0,
-                                    ),
-                                    child: Column(
-                                      children: [
-                                        Text(
-                                          'Active Alerts',
-                                          style: TextStyle(
-                                            fontSize: 18,
-                                            fontWeight: FontWeight.w500,
-                                          ),
-                                        ),
-                                        SizedBox(
-                                          height: 8,
-                                        ),
-                                        Text(
-                                          '03',
-                                          style: TextStyle(
-                                            fontSize: 48,
-                                            fontWeight: FontWeight.bold,
-                                          ),
-                                        ),
-                                      ],
-                                    ),
-                                  ),
-                                ),
-                              ),
-                              SizedBox(
-                                width: 300,
-                                height: 150,
-                                child: Card(
-                                  child: Padding(
-                                    padding: EdgeInsets.all(
-                                      16.0,
-                                    ),
-                                    child: Column(
-                                      children: [
-                                        Text(
-                                          'Completed Tasks',
-                                          style: TextStyle(
-                                            fontSize: 18,
-                                            fontWeight: FontWeight.w500,
-                                          ),
-                                        ),
-                                        SizedBox(
-                                          height: 8,
-                                        ),
-                                        Text(
-                                          '18/24',
-                                          style: TextStyle(
-                                            fontSize: 48,
-                                            fontWeight: FontWeight.bold,
-                                          ),
-                                        ),
-                                      ],
-                                    ),
-                                  ),
-                                ),
-                              ),
-                              SizedBox(
-                                width: 300,
-                                height: 150,
-                                child: Card(
-                                  child: Padding(
-                                    padding: EdgeInsets.all(
-                                      16.0,
-                                    ),
-                                    child: Column(
-                                      children: [
-                                        Text(
-                                          'AVG. Soil Moisture',
-                                          style: TextStyle(
-                                            fontSize: 18,
-                                            fontWeight: FontWeight.w500,
-                                          ),
-                                        ),
-                                        SizedBox(
-                                          height: 8,
-                                        ),
-                                        Text(
-                                          '42%',
-                                          style: TextStyle(
-                                            fontSize: 48,
-                                            fontWeight: FontWeight.bold,
-                                          ),
-                                        ),
-                                      ],
-                                    ),
-                                  ),
-                                ),
-                              ),
-                            ],
-                          ),
+                          // Handles string status fields like 'Active', 'Inactive', 'status', or 'isActive'
+                          final String status =
+                              (data?['isActive'] ??
+                                      data?['status'] ??
+                                      'Inactive')
+                                  .toString();
 
-                          Card(
+                          return SingleChildScrollView(
                             child: Padding(
-                              padding: EdgeInsets.all(
+                              padding: const EdgeInsets.all(
                                 16.0,
                               ),
                               child: Column(
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
-                                  Text(
-                                    'Quick Actions',
-                                    style: TextStyle(
-                                      fontSize: 18,
-                                      fontWeight: FontWeight.w600,
-                                    ),
-                                  ),
-                                  SizedBox(
-                                    height: 8,
-                                  ),
-                                  Text(
-                                    'Manage your farm activities and tasks with ease using our quick action buttons below.',
-                                    style: TextStyle(
-                                      fontSize: 14,
-                                      fontWeight: FontWeight.w500,
-                                    ),
-                                  ),
-                                  SizedBox(
-                                    height: 20,
+                                  const SizedBox(
+                                    height: 80,
                                   ),
                                   Row(
                                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                                     children: [
-                                      Expanded(
-                                        child: ElevatedButton(
-                                          onPressed: () {},
-                                          child: const Text(
-                                            'Manage Crops',
+                                      Column(
+                                        crossAxisAlignment: CrossAxisAlignment.start,
+                                        children: [
+                                          const Text(
+                                            'Farmer Dashboard',
+                                            style: TextStyle(
+                                              fontSize: 24,
+                                              fontWeight: FontWeight.bold,
+                                            ),
+                                          ),
+                                          Text(
+                                            "Good morning, $farmerName. Here's what's happening on your farms today.",
+                                            style: const TextStyle(
+                                              fontSize: 18,
+                                              fontWeight: FontWeight.w500,
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                      Row(
+                                        children: [
+                                          // Status Pill accepts String parameter directly
+                                          _buildStatusPill(
+                                            status,
+                                          ),
+                                          const SizedBox(
+                                            width: 16,
+                                          ),
+                                          ElevatedButton(
+                                            onPressed: () {},
+                                            style: ElevatedButton.styleFrom(
+                                              backgroundColor: primaryGreenColor,
+                                              padding: const EdgeInsets.symmetric(
+                                                horizontal: 40,
+                                                vertical: 12,
+                                              ),
+                                              shape: RoundedRectangleBorder(
+                                                borderRadius: BorderRadius.circular(
+                                                  8,
+                                                ),
+                                              ),
+                                            ),
+                                            child: const Text(
+                                              'Log Activity',
+                                              style: TextStyle(
+                                                fontWeight: FontWeight.w600,
+                                                color: Colors.white,
+                                              ),
+                                            ),
+                                          ),
+                                          const SizedBox(
+                                            width: 16,
+                                          ),
+                                          // ElevatedButton(
+                                          //   onPressed: () {},
+                                          //   style: ElevatedButton.styleFrom(
+                                          //     backgroundColor: primaryGreenColor,
+                                          //     padding: const EdgeInsets.symmetric(
+                                          //       horizontal: 40,
+                                          //       vertical: 12,
+                                          //     ),
+                                          //     shape: RoundedRectangleBorder(
+                                          //       borderRadius: BorderRadius.circular(
+                                          //         8,
+                                          //       ),
+                                          //     ),
+                                          //   ),
+                                          //   child: const Text(
+                                          //     'Add Task',
+                                          //     style: TextStyle(
+                                          //       fontWeight: FontWeight.w600,
+                                          //       color: Colors.white,
+                                          //     ),
+                                          //   ),
+                                          // ),
+                                        ],
+                                      ),
+                                    ],
+                                  ),
+                                  const SizedBox(
+                                    height: 24,
+                                  ),
+                                  Row(
+                                    mainAxisAlignment: MainAxisAlignment.start,
+                                    children: [
+                                      SizedBox(
+                                        width: 300,
+                                        height: 150,
+                                        child: Card(
+                                          child: Padding(
+                                            padding: const EdgeInsets.all(
+                                              16.0,
+                                            ),
+                                            child: Column(
+                                              children: const [
+                                                Text(
+                                                  'Total Area',
+                                                  style: TextStyle(
+                                                    fontSize: 18,
+                                                    fontWeight: FontWeight.w500,
+                                                  ),
+                                                ),
+                                                SizedBox(
+                                                  height: 8,
+                                                ),
+                                                Text(
+                                                  '90 ha',
+                                                  style: TextStyle(
+                                                    fontSize: 48,
+                                                    fontWeight: FontWeight.bold,
+                                                  ),
+                                                ),
+                                              ],
+                                            ),
                                           ),
                                         ),
                                       ),
                                       SizedBox(
-                                        width: 16,
-                                      ),
-                                      Expanded(
-                                        child: ElevatedButton(
-                                          onPressed: () {},
-                                          child: const Text(
-                                            'View Reports',
+                                        width: 300,
+                                        height: 150,
+                                        child: Card(
+                                          child: Padding(
+                                            padding: const EdgeInsets.all(
+                                              16.0,
+                                            ),
+                                            child: Column(
+                                              children: const [
+                                                Text(
+                                                  'Active Alerts',
+                                                  style: TextStyle(
+                                                    fontSize: 18,
+                                                    fontWeight: FontWeight.w500,
+                                                  ),
+                                                ),
+                                                SizedBox(
+                                                  height: 8,
+                                                ),
+                                                Text(
+                                                  '03',
+                                                  style: TextStyle(
+                                                    fontSize: 48,
+                                                    fontWeight: FontWeight.bold,
+                                                  ),
+                                                ),
+                                              ],
+                                            ),
                                           ),
                                         ),
                                       ),
                                       SizedBox(
-                                        width: 16,
+                                        width: 300,
+                                        height: 150,
+                                        child: Card(
+                                          child: Padding(
+                                            padding: const EdgeInsets.all(
+                                              16.0,
+                                            ),
+                                            child: Column(
+                                              children: const [
+                                                Text(
+                                                  'Completed Tasks',
+                                                  style: TextStyle(
+                                                    fontSize: 18,
+                                                    fontWeight: FontWeight.w500,
+                                                  ),
+                                                ),
+                                                SizedBox(
+                                                  height: 8,
+                                                ),
+                                                Text(
+                                                  '18/24',
+                                                  style: TextStyle(
+                                                    fontSize: 48,
+                                                    fontWeight: FontWeight.bold,
+                                                  ),
+                                                ),
+                                              ],
+                                            ),
+                                          ),
+                                        ),
                                       ),
-                                      Expanded(
-                                        child: ElevatedButton(
-                                          onPressed: () {
-                                            _newTaskDialog(
-                                              context,
-                                            );
-                                          },
-                                          child: const Text(
-                                            'Schedule Tasks',
+                                      SizedBox(
+                                        width: 300,
+                                        height: 150,
+                                        child: Card(
+                                          child: Padding(
+                                            padding: const EdgeInsets.all(
+                                              16.0,
+                                            ),
+                                            child: Column(
+                                              children: const [
+                                                Text(
+                                                  'AVG. Soil Moisture',
+                                                  style: TextStyle(
+                                                    fontSize: 18,
+                                                    fontWeight: FontWeight.w500,
+                                                  ),
+                                                ),
+                                                SizedBox(
+                                                  height: 8,
+                                                ),
+                                                Text(
+                                                  '42%',
+                                                  style: TextStyle(
+                                                    fontSize: 48,
+                                                    fontWeight: FontWeight.bold,
+                                                  ),
+                                                ),
+                                              ],
+                                            ),
                                           ),
                                         ),
                                       ),
                                     ],
                                   ),
+                                  Card(
+                                    child: Padding(
+                                      padding: const EdgeInsets.all(
+                                        16.0,
+                                      ),
+                                      child: Column(
+                                        crossAxisAlignment: CrossAxisAlignment.start,
+                                        children: [
+                                          const Text(
+                                            'Quick Actions',
+                                            style: TextStyle(
+                                              fontSize: 18,
+                                              fontWeight: FontWeight.w600,
+                                            ),
+                                          ),
+                                          const SizedBox(
+                                            height: 8,
+                                          ),
+                                          const Text(
+                                            'Manage your farm activities and tasks with ease using our quick action buttons below.',
+                                            style: TextStyle(
+                                              fontSize: 14,
+                                              fontWeight: FontWeight.w500,
+                                            ),
+                                          ),
+                                          const SizedBox(
+                                            height: 20,
+                                          ),
+                                          Row(
+                                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                            children: [
+                                              Expanded(
+                                                child: ElevatedButton(
+                                                  onPressed: () {},
+                                                  child: const Text(
+                                                    'Manage Crops',
+                                                  ),
+                                                ),
+                                              ),
+                                              const SizedBox(
+                                                width: 16,
+                                              ),
+                                              Expanded(
+                                                child: ElevatedButton(
+                                                  onPressed: () {},
+                                                  child: const Text(
+                                                    'View Reports',
+                                                  ),
+                                                ),
+                                              ),
+                                              const SizedBox(
+                                                width: 16,
+                                              ),
+                                              Expanded(
+                                                child: ElevatedButton(
+                                                  onPressed: () {
+                                                    _newTaskDialog(
+                                                      context,
+                                                    );
+                                                  },
+                                                  child: const Text(
+                                                    'Schedule Tasks',
+                                                  ),
+                                                ),
+                                              ),
+                                            ],
+                                          ),
+                                        ],
+                                      ),
+                                    ),
+                                  ),
+
+                                  ListView(
+                                    shrinkWrap: true,
+                                    physics: const NeverScrollableScrollPhysics(),
+                                    children: _farms.map(
+                                      (
+                                        farm,
+                                      ) {
+                                        if (farm.name ==
+                                            allocatedFarm) {
+                                          return Align(
+                                            alignment: Alignment.centerLeft,
+                                            child: SizedBox(
+                                              width: 450,
+                                              child: AllocatedFarmCard(
+                                                farm: farm,
+                                              ),
+                                            ),
+                                          );
+                                        } else {
+                                          return const SizedBox.shrink();
+                                        }
+                                      },
+                                    ).toList(),
+                                  ),
                                 ],
                               ),
                             ),
-                          ),
-                        ],
-                      ),
-                    ),
+                          );
+                        },
                   ),
                   const Center(
                     child: Text(
@@ -476,6 +596,62 @@ class _FarmerDashboardState
             ),
           ],
         ),
+      ),
+    );
+  }
+
+  // Helper widget to render status pill from string
+  Widget _buildStatusPill(
+    String status,
+  ) {
+    final bool isActive =
+        status.trim().toLowerCase() ==
+        'active';
+    final color = isActive
+        ? Colors.green
+        : Colors.red;
+
+    return Container(
+      padding: const EdgeInsets.symmetric(
+        horizontal: 14,
+        vertical: 8,
+      ),
+      decoration: BoxDecoration(
+        color: color.withOpacity(
+          0.12,
+        ),
+        borderRadius: BorderRadius.circular(
+          20,
+        ),
+        border: Border.all(
+          color: color.withOpacity(
+            0.5,
+          ),
+        ),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Container(
+            width: 8,
+            height: 8,
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              color: color,
+            ),
+          ),
+          const SizedBox(
+            width: 8,
+          ),
+          Text(
+            status,
+            style: TextStyle(
+              color: color.shade700,
+              fontWeight: FontWeight.w600,
+              fontSize: 14,
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -492,31 +668,30 @@ class _FarmerDashboardState
           (
             context,
           ) => AlertDialog(
-            title: Text(
+            title: const Text(
               'Add New Task',
             ),
             content: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
-                TextField(
+                const TextField(
                   decoration: InputDecoration(
                     labelText: 'Task Name',
                     border: OutlineInputBorder(),
                   ),
                 ),
-                TextField(
+                const TextField(
                   decoration: InputDecoration(
                     labelText: 'Description',
                     border: OutlineInputBorder(),
                   ),
                 ),
-                TextField(
+                const TextField(
                   decoration: InputDecoration(
                     labelText: 'Due Date',
                     border: OutlineInputBorder(),
                   ),
                 ),
-
                 Row(
                   mainAxisAlignment: MainAxisAlignment.end,
                   children: [
@@ -526,21 +701,20 @@ class _FarmerDashboardState
                           context,
                         ).pop();
                       },
-                      child: Text(
+                      child: const Text(
                         'Cancel',
                       ),
                     ),
-                    SizedBox(
+                    const SizedBox(
                       width: 8,
                     ),
                     ElevatedButton(
                       onPressed: () {
-                        // Handle task creation logic here
                         Navigator.of(
                           context,
                         ).pop();
                       },
-                      child: Text(
+                      child: const Text(
                         'Add Task',
                       ),
                     ),
