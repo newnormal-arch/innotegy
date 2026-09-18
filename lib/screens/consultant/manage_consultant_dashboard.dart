@@ -494,9 +494,6 @@ _newConsultantDialog(
                                 (
                                   value,
                                 ) {
-                                  print(
-                                    'User signed up Consultant Successfully',
-                                  );
                                   authService.value.saveConsultantData(
                                     fullName: consultantFullNameController.text,
                                     email: consultantEmailController.text,
@@ -511,9 +508,6 @@ _newConsultantDialog(
                         } on FirebaseAuthException catch (
                           e
                         ) {
-                          print(
-                            'Error: ${e.message}',
-                          );
                           EasyLoading.showError(
                             e.message ??
                                 'An error occurred',

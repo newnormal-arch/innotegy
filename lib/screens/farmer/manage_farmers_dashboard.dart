@@ -582,10 +582,6 @@ _newFarmerDialog(
                                 (
                                   value,
                                 ) {
-                                  print(
-                                    'User signed up Farmer Successfully',
-                                  );
-
                                   authService.value.saveUserData(
                                     fullName: farmerFullNameController.text,
 

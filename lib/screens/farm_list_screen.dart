@@ -184,7 +184,7 @@ class _FarmListScreenState
                                 crossAxisCount: crossAxisCount,
                                 crossAxisSpacing: 16,
                                 mainAxisSpacing: 16,
-                                mainAxisExtent: 280,
+                                mainAxisExtent: 330,
                               ),
                               itemCount: _farms.length,
                               itemBuilder:

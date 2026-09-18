@@ -52,25 +52,21 @@ class FarmCard
                       null
                   ? FlutterMap(
                       options: MapOptions(
-                        // Auto-fit camera to polygon bounds
                         initialCameraFit: CameraFit.bounds(
                           bounds: bounds,
                           padding: const EdgeInsets.all(
                             16.0,
                           ),
                         ),
-                        // Disable all gestures so touch events scroll the list cleanly
                         interactionOptions: const InteractionOptions(
                           flags: InteractiveFlag.none,
                         ),
                       ),
                       children: [
-                        // Satellite imagery tile layer
                         TileLayer(
                           urlTemplate: 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',
                           userAgentPackageName: 'com.example.farm_app',
                         ),
-                        // Field polygon overlay
                         PolygonLayer(
                           polygons: [
                             Polygon(
@@ -80,7 +76,6 @@ class FarmCard
                               ),
                               borderColor: Colors.lightGreenAccent,
                               borderStrokeWidth: 2.5,
-                              // isFilled: true,
                             ),
                           ],
                         ),
@@ -181,28 +176,109 @@ class FarmCard
                   const SizedBox(
                     height: 12,
                   ),
+
+                  // Row for Allocate Farmer & Allocate Manager Buttons
+                  Row(
+                    children: [
+                      Expanded(
+                        child: OutlinedButton.icon(
+                          onPressed: () => showAllocateFarmerDialog(
+                            context,
+                            farm,
+                          ),
+                          icon: const Icon(
+                            Icons.person_add_alt_1,
+                            color: primaryGreenColor,
+                            size: 18,
+                          ),
+                          label: const Text(
+                            'Farmer',
+                            style: TextStyle(
+                              color: primaryGreenColor,
+                              fontWeight: FontWeight.bold,
+                              fontSize: 13,
+                            ),
+                          ),
+                          style: OutlinedButton.styleFrom(
+                            side: const BorderSide(
+                              color: primaryGreenColor,
+                            ),
+                            padding: const EdgeInsets.symmetric(
+                              vertical: 10,
+                            ),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(
+                                8,
+                              ),
+                            ),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(
+                        width: 8,
+                      ),
+                      Expanded(
+                        child: OutlinedButton.icon(
+                          onPressed: () => showAllocateManagerDialog(
+                            context,
+                            farm,
+                          ),
+                          icon: const Icon(
+                            Icons.supervisor_account,
+                            color: primaryGreenColor,
+                            size: 18,
+                          ),
+                          label: const Text(
+                            'Manager',
+                            style: TextStyle(
+                              color: primaryGreenColor,
+                              fontWeight: FontWeight.bold,
+                              fontSize: 13,
+                            ),
+                          ),
+                          style: OutlinedButton.styleFrom(
+                            side: const BorderSide(
+                              color: primaryGreenColor,
+                            ),
+                            padding: const EdgeInsets.symmetric(
+                              vertical: 10,
+                            ),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(
+                                8,
+                              ),
+                            ),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(
+                    height: 8,
+                  ),
+
+                  // Add Task Button spanning the full width underneath
                   SizedBox(
                     width: double.infinity,
-                    child: OutlinedButton.icon(
-                      onPressed: () => showAllocateFarmerDialog(
+                    child: ElevatedButton.icon(
+                      onPressed: () => showAddTaskDialog(
                         context,
                         farm,
                       ),
                       icon: const Icon(
-                        Icons.person_add_alt_1,
-                        color: primaryGreenColor,
+                        Icons.add_task,
+                        color: Colors.white,
+                        size: 18,
                       ),
                       label: const Text(
-                        'Allocate Farmer',
+                        'Add Task',
                         style: TextStyle(
-                          color: primaryGreenColor,
+                          color: Colors.white,
                           fontWeight: FontWeight.bold,
                         ),
                       ),
-                      style: OutlinedButton.styleFrom(
-                        side: const BorderSide(
-                          color: primaryGreenColor,
-                        ),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: primaryGreenColor,
                         padding: const EdgeInsets.symmetric(
                           vertical: 12,
                         ),
@@ -224,6 +300,588 @@ class FarmCard
   }
 }
 
+// ---------------------------------------------------------------------------
+// DIALOG: Add Task
+// ---------------------------------------------------------------------------
+void
+showAddTaskDialog(
+  BuildContext context,
+  FarmModel farm,
+) {
+  final TextEditingController taskNameController = TextEditingController();
+  DateTime? startDate;
+  DateTime? endDate;
+  String? selectedFarmerId;
+
+  showDialog(
+    context: context,
+    builder:
+        (
+          dialogContext,
+        ) {
+          return StatefulBuilder(
+            builder:
+                (
+                  context,
+                  setState,
+                ) {
+                  String formatDate(
+                    DateTime? date,
+                  ) {
+                    if (date ==
+                        null)
+                      return 'Select Date';
+                    return '${date.year}-${date.month.toString().padLeft(2, '0')}-${date.day.toString().padLeft(2, '0')}';
+                  }
+
+                  Future<
+                    void
+                  >
+                  pickDate(
+                    bool isStart,
+                  ) async {
+                    final DateTime? picked = await showDatePicker(
+                      context: context,
+                      initialDate: DateTime.now(),
+                      firstDate: DateTime.now().subtract(
+                        const Duration(
+                          days: 30,
+                        ),
+                      ),
+                      lastDate: DateTime(
+                        2100,
+                      ),
+                    );
+                    if (picked !=
+                        null) {
+                      setState(
+                        () {
+                          if (isStart) {
+                            startDate = picked;
+                          } else {
+                            endDate = picked;
+                          }
+                        },
+                      );
+                    }
+                  }
+
+                  return Dialog(
+                    insetPadding: const EdgeInsets.symmetric(
+                      horizontal: 40,
+                      vertical: 24,
+                    ),
+                    child: SingleChildScrollView(
+                      child: Padding(
+                        padding: const EdgeInsets.all(
+                          24.0,
+                        ),
+                        child: Column(
+                          mainAxisSize: MainAxisSize.min,
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              'Add Task for ${farm.name}',
+                              style: const TextStyle(
+                                fontSize: 20,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                            const SizedBox(
+                              height: 16,
+                            ),
+
+                            // Task Name Field
+                            TextField(
+                              controller: taskNameController,
+                              decoration: InputDecoration(
+                                labelText: 'Task Name',
+                                hintText: 'e.g., Irrigation, Fertilization',
+                                border: OutlineInputBorder(
+                                  borderRadius: BorderRadius.circular(
+                                    8,
+                                  ),
+                                ),
+                              ),
+                            ),
+                            const SizedBox(
+                              height: 16,
+                            ),
+
+                            // Start & End Date Pickers
+                            Row(
+                              children: [
+                                Expanded(
+                                  child: InkWell(
+                                    onTap: () => pickDate(
+                                      true,
+                                    ),
+                                    child: InputDecorator(
+                                      decoration: InputDecoration(
+                                        labelText: 'Start Date',
+                                        border: OutlineInputBorder(
+                                          borderRadius: BorderRadius.circular(
+                                            8,
+                                          ),
+                                        ),
+                                        suffixIcon: const Icon(
+                                          Icons.calendar_today,
+                                          size: 18,
+                                        ),
+                                      ),
+                                      child: Text(
+                                        formatDate(
+                                          startDate,
+                                        ),
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                                const SizedBox(
+                                  width: 12,
+                                ),
+                                Expanded(
+                                  child: InkWell(
+                                    onTap: () => pickDate(
+                                      false,
+                                    ),
+                                    child: InputDecorator(
+                                      decoration: InputDecoration(
+                                        labelText: 'End Date',
+                                        border: OutlineInputBorder(
+                                          borderRadius: BorderRadius.circular(
+                                            8,
+                                          ),
+                                        ),
+                                        suffixIcon: const Icon(
+                                          Icons.calendar_today,
+                                          size: 18,
+                                        ),
+                                      ),
+                                      child: Text(
+                                        formatDate(
+                                          endDate,
+                                        ),
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
+                            const SizedBox(
+                              height: 16,
+                            ),
+
+                            // Farmers Dropdown
+                            FutureBuilder<
+                              QuerySnapshot
+                            >(
+                              future: FirebaseFirestore.instance
+                                  .collection(
+                                    'farmer',
+                                  )
+                                  .get(),
+                              builder:
+                                  (
+                                    context,
+                                    snapshot,
+                                  ) {
+                                    if (snapshot.connectionState ==
+                                        ConnectionState.waiting) {
+                                      return const Center(
+                                        child: CircularProgressIndicator(),
+                                      );
+                                    }
+
+                                    if (snapshot.hasError) {
+                                      return Text(
+                                        'Error loading farmers: ${snapshot.error}',
+                                      );
+                                    }
+
+                                    final farmerDocs =
+                                        snapshot.data?.docs ??
+                                        [];
+
+                                    if (farmerDocs.isEmpty) {
+                                      return const Text(
+                                        'No registered farmers found.',
+                                      );
+                                    }
+
+                                    return DropdownButtonFormField<
+                                      String
+                                    >(
+                                      initialValue: selectedFarmerId,
+                                      isExpanded: true,
+                                      decoration: InputDecoration(
+                                        labelText: 'Assign to Farmer',
+                                        border: OutlineInputBorder(
+                                          borderRadius: BorderRadius.circular(
+                                            8,
+                                          ),
+                                        ),
+                                      ),
+                                      hint: const Text(
+                                        'Select Farmer',
+                                      ),
+                                      items: farmerDocs.map(
+                                        (
+                                          doc,
+                                        ) {
+                                          final data =
+                                              doc.data()
+                                                  as Map<
+                                                    String,
+                                                    dynamic
+                                                  >;
+                                          final String fullName =
+                                              data['fullName'] ??
+                                              'Unknown Farmer';
+                                          return DropdownMenuItem<
+                                            String
+                                          >(
+                                            value: doc.id,
+                                            child: Text(
+                                              fullName,
+                                            ),
+                                          );
+                                        },
+                                      ).toList(),
+                                      onChanged:
+                                          (
+                                            val,
+                                          ) {
+                                            setState(
+                                              () => selectedFarmerId = val,
+                                            );
+                                          },
+                                    );
+                                  },
+                            ),
+                            const SizedBox(
+                              height: 24,
+                            ),
+
+                            // Actions
+                            Row(
+                              mainAxisAlignment: MainAxisAlignment.end,
+                              children: [
+                                TextButton(
+                                  onPressed: () => Navigator.of(
+                                    dialogContext,
+                                  ).pop(),
+                                  child: const Text(
+                                    'Cancel',
+                                  ),
+                                ),
+                                const SizedBox(
+                                  width: 12,
+                                ),
+                                ElevatedButton(
+                                  onPressed:
+                                      (taskNameController.text.trim().isEmpty ||
+                                          startDate ==
+                                              null ||
+                                          endDate ==
+                                              null ||
+                                          selectedFarmerId ==
+                                              null)
+                                      ? null
+                                      : () async {
+                                          EasyLoading.show(
+                                            status: 'Creating Task...',
+                                          );
+                                          try {
+                                            await FirebaseFirestore.instance
+                                                .collection(
+                                                  'tasks',
+                                                )
+                                                .add(
+                                                  {
+                                                    'taskName': taskNameController.text.trim(),
+                                                    'startDate': Timestamp.fromDate(
+                                                      startDate!,
+                                                    ),
+                                                    'endDate': Timestamp.fromDate(
+                                                      endDate!,
+                                                    ),
+                                                    'farmerId': selectedFarmerId,
+                                                    'farmName': farm.name,
+                                                    'createdAt': FieldValue.serverTimestamp(),
+                                                  },
+                                                );
+
+                                            if (context.mounted) {
+                                              Navigator.of(
+                                                dialogContext,
+                                              ).pop();
+                                            }
+                                            EasyLoading.showSuccess(
+                                              'Task added successfully!',
+                                            );
+                                          } catch (
+                                            e
+                                          ) {
+                                            EasyLoading.showError(
+                                              'Failed to add task',
+                                            );
+                                          }
+                                        },
+                                  style: ElevatedButton.styleFrom(
+                                    backgroundColor: primaryGreenColor,
+                                    shape: RoundedRectangleBorder(
+                                      borderRadius: BorderRadius.circular(
+                                        8,
+                                      ),
+                                    ),
+                                  ),
+                                  child: const Text(
+                                    'Save Task',
+                                    style: TextStyle(
+                                      color: Colors.white,
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  );
+                },
+          );
+        },
+  );
+}
+
+// ---------------------------------------------------------------------------
+// DIALOG: Allocate Manager
+// ---------------------------------------------------------------------------
+void
+showAllocateManagerDialog(
+  BuildContext context,
+  FarmModel farm,
+) {
+  String? selectedManagerId;
+
+  showDialog(
+    context: context,
+    builder:
+        (
+          dialogContext,
+        ) {
+          return StatefulBuilder(
+            builder:
+                (
+                  context,
+                  setState,
+                ) {
+                  return Dialog(
+                    insetPadding: const EdgeInsets.symmetric(
+                      horizontal: 40,
+                      vertical: 24,
+                    ),
+                    child: Padding(
+                      padding: const EdgeInsets.all(
+                        24.0,
+                      ),
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            'Allocate Manager to ${farm.name}',
+                            style: const TextStyle(
+                              fontSize: 20,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                          const SizedBox(
+                            height: 8,
+                          ),
+                          Text(
+                            'Select a manager to oversee this farm.',
+                            style: TextStyle(
+                              color: Colors.grey[600],
+                            ),
+                          ),
+                          const SizedBox(
+                            height: 20,
+                          ),
+                          FutureBuilder<
+                            QuerySnapshot
+                          >(
+                            future: FirebaseFirestore.instance
+                                .collection(
+                                  'consultant',
+                                )
+                                .get(),
+                            builder:
+                                (
+                                  context,
+                                  snapshot,
+                                ) {
+                                  if (snapshot.connectionState ==
+                                      ConnectionState.waiting) {
+                                    return const Center(
+                                      child: CircularProgressIndicator(),
+                                    );
+                                  }
+
+                                  if (snapshot.hasError) {
+                                    return Text(
+                                      'Error loading managers: ${snapshot.error}',
+                                    );
+                                  }
+
+                                  final managerDocs =
+                                      snapshot.data?.docs ??
+                                      [];
+
+                                  if (managerDocs.isEmpty) {
+                                    return const Text(
+                                      'No registered managers found.',
+                                    );
+                                  }
+
+                                  return DropdownButtonFormField<
+                                    String
+                                  >(
+                                    initialValue: selectedManagerId,
+                                    isExpanded: true,
+                                    decoration: InputDecoration(
+                                      labelText: 'Manager Name',
+                                      border: OutlineInputBorder(
+                                        borderRadius: BorderRadius.circular(
+                                          8,
+                                        ),
+                                      ),
+                                    ),
+                                    hint: const Text(
+                                      'Select a Manager',
+                                    ),
+                                    items: managerDocs.map(
+                                      (
+                                        doc,
+                                      ) {
+                                        final data =
+                                            doc.data()
+                                                as Map<
+                                                  String,
+                                                  dynamic
+                                                >;
+                                        final String fullName =
+                                            data['fullName'] ??
+                                            'Unknown Manager';
+                                        return DropdownMenuItem<
+                                          String
+                                        >(
+                                          value: doc.id,
+                                          child: Text(
+                                            fullName,
+                                          ),
+                                        );
+                                      },
+                                    ).toList(),
+                                    onChanged:
+                                        (
+                                          value,
+                                        ) {
+                                          setState(
+                                            () => selectedManagerId = value,
+                                          );
+                                        },
+                                  );
+                                },
+                          ),
+                          const SizedBox(
+                            height: 24,
+                          ),
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.end,
+                            children: [
+                              TextButton(
+                                onPressed: () => Navigator.of(
+                                  dialogContext,
+                                ).pop(),
+                                child: const Text(
+                                  'Cancel',
+                                ),
+                              ),
+                              const SizedBox(
+                                width: 12,
+                              ),
+                              ElevatedButton(
+                                onPressed:
+                                    selectedManagerId ==
+                                        null
+                                    ? null
+                                    : () async {
+                                        EasyLoading.show(
+                                          status: 'Assigning Manager...',
+                                        );
+                                        try {
+                                          await FirebaseFirestore.instance
+                                              .collection(
+                                                'consultant',
+                                              )
+                                              .doc(
+                                                selectedManagerId,
+                                              )
+                                              .update(
+                                                {
+                                                  'allocatedFarm': farm.name,
+                                                },
+                                              );
+
+                                          if (context.mounted) {
+                                            Navigator.of(
+                                              dialogContext,
+                                            ).pop();
+                                          }
+                                          EasyLoading.showSuccess(
+                                            'Manager allocated successfully!',
+                                          );
+                                        } catch (
+                                          e
+                                        ) {
+                                          EasyLoading.showError(
+                                            'Failed to allocate manager',
+                                          );
+                                        }
+                                      },
+                                style: ElevatedButton.styleFrom(
+                                  backgroundColor: primaryGreenColor,
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(
+                                      8,
+                                    ),
+                                  ),
+                                ),
+                                child: const Text(
+                                  'Allocate',
+                                  style: TextStyle(
+                                    color: Colors.white,
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ],
+                      ),
+                    ),
+                  );
+                },
+          );
+        },
+  );
+}
+
+// ---------------------------------------------------------------------------
+// DIALOG: Allocate Farmer
+// ---------------------------------------------------------------------------
 void
 showAllocateFarmerDialog(
   BuildContext context,
@@ -245,11 +903,12 @@ showAllocateFarmerDialog(
                 ) {
                   return Dialog(
                     insetPadding: const EdgeInsets.symmetric(
-                      horizontal: 200,
+                      horizontal: 40,
+                      vertical: 24,
                     ),
                     child: Padding(
                       padding: const EdgeInsets.all(
-                        32.0,
+                        24.0,
                       ),
                       child: Column(
                         mainAxisSize: MainAxisSize.min,
@@ -258,7 +917,7 @@ showAllocateFarmerDialog(
                           Text(
                             'Allocate Farmer to ${farm.name}',
                             style: const TextStyle(
-                              fontSize: 22,
+                              fontSize: 20,
                               fontWeight: FontWeight.bold,
                             ),
                           ),
@@ -272,10 +931,8 @@ showAllocateFarmerDialog(
                             ),
                           ),
                           const SizedBox(
-                            height: 24,
+                            height: 20,
                           ),
-
-                          // Query Firestore Farmers
                           FutureBuilder<
                             QuerySnapshot
                           >(
@@ -292,12 +949,7 @@ showAllocateFarmerDialog(
                                   if (snapshot.connectionState ==
                                       ConnectionState.waiting) {
                                     return const Center(
-                                      child: Padding(
-                                        padding: EdgeInsets.all(
-                                          20.0,
-                                        ),
-                                        child: CircularProgressIndicator(),
-                                      ),
+                                      child: CircularProgressIndicator(),
                                     );
                                   }
 
@@ -312,13 +964,8 @@ showAllocateFarmerDialog(
                                       [];
 
                                   if (farmerDocs.isEmpty) {
-                                    return const Padding(
-                                      padding: EdgeInsets.symmetric(
-                                        vertical: 16.0,
-                                      ),
-                                      child: Text(
-                                        'No registered farmers found.',
-                                      ),
+                                    return const Text(
+                                      'No registered farmers found.',
                                     );
                                   }
 
@@ -326,9 +973,6 @@ showAllocateFarmerDialog(
                                     String
                                   >(
                                     initialValue: selectedFarmerId,
-                                    hint: const Text(
-                                      'Select a Farmer',
-                                    ),
                                     isExpanded: true,
                                     decoration: InputDecoration(
                                       labelText: 'Farmer Name',
@@ -337,6 +981,9 @@ showAllocateFarmerDialog(
                                           8,
                                         ),
                                       ),
+                                    ),
+                                    hint: const Text(
+                                      'Select a Farmer',
                                     ),
                                     items: farmerDocs.map(
                                       (
@@ -381,9 +1028,8 @@ showAllocateFarmerDialog(
                                 },
                           ),
                           const SizedBox(
-                            height: 30,
+                            height: 24,
                           ),
-
                           Row(
                             mainAxisAlignment: MainAxisAlignment.end,
                             children: [
@@ -408,7 +1054,6 @@ showAllocateFarmerDialog(
                                           status: 'Assigning Farm...',
                                         );
                                         try {
-                                          // Update the selected farmer doc in Firestore
                                           await FirebaseFirestore.instance
                                               .collection(
                                                 'farmer',
@@ -440,10 +1085,6 @@ showAllocateFarmerDialog(
                                       },
                                 style: ElevatedButton.styleFrom(
                                   backgroundColor: primaryGreenColor,
-                                  padding: const EdgeInsets.symmetric(
-                                    horizontal: 24,
-                                    vertical: 12,
-                                  ),
                                   shape: RoundedRectangleBorder(
                                     borderRadius: BorderRadius.circular(
                                       8,
@@ -454,7 +1095,6 @@ showAllocateFarmerDialog(
                                   'Allocate',
                                   style: TextStyle(
                                     color: Colors.white,
-                                    fontWeight: FontWeight.bold,
                                   ),
                                 ),
                               ),
