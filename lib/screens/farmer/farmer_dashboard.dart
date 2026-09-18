@@ -9,6 +9,7 @@ import 'package:innotegy/screens/auth_screen.dart';
 import 'package:innotegy/services/auth_service.dart';
 import 'package:innotegy/services/kml_service.dart';
 import 'package:innotegy/widgets/allocated_farm_card.dart';
+import 'package:innotegy/widgets/build_task_list.dart';
 
 class FarmerDashboard
     extends
@@ -556,29 +557,36 @@ class _FarmerDashboardState
                                     ),
                                   ),
 
-                                  ListView(
-                                    shrinkWrap: true,
-                                    physics: const NeverScrollableScrollPhysics(),
-                                    children: _farms.map(
-                                      (
-                                        farm,
-                                      ) {
-                                        if (farm.name ==
-                                            allocatedFarm) {
-                                          return Align(
-                                            alignment: Alignment.centerLeft,
-                                            child: SizedBox(
-                                              width: 450,
-                                              child: AllocatedFarmCard(
-                                                farm: farm,
-                                              ),
-                                            ),
-                                          );
-                                        } else {
-                                          return const SizedBox.shrink();
-                                        }
-                                      },
-                                    ).toList(),
+                                  Row(
+                                    children: [
+                                      Expanded(
+                                        child: ListView(
+                                          shrinkWrap: true,
+                                          physics: const NeverScrollableScrollPhysics(),
+                                          children: _farms.map(
+                                            (
+                                              farm,
+                                            ) {
+                                              if (farm.name ==
+                                                  allocatedFarm) {
+                                                return Align(
+                                                  alignment: Alignment.centerLeft,
+                                                  child: SizedBox(
+                                                    width: 450,
+                                                    child: AllocatedFarmCard(
+                                                      farm: farm,
+                                                    ),
+                                                  ),
+                                                );
+                                              } else {
+                                                return const SizedBox.shrink();
+                                              }
+                                            },
+                                          ).toList(),
+                                        ),
+                                      ),
+                                      buildTaskList(),
+                                    ],
                                   ),
                                 ],
                               ),
