@@ -170,6 +170,36 @@ class AuthService {
         );
   }
 
+  // Save manager data to Firestore
+  Future<
+    void
+  >
+  saveAuditorData({
+    required String fullName,
+    required String email,
+    required String phone,
+  }) async {
+    await FirebaseFirestore.instance
+        .collection(
+          'auditor',
+        )
+        .doc(
+          firebaseAuth.currentUser!.uid,
+        )
+        .set(
+          {
+            'fullName': fullName,
+            'email': email,
+            'phone': phone,
+            'role': '',
+            'status': 'Inactive',
+            'allocatedFarms': {
+              '',
+            },
+          },
+        );
+  }
+
   // Save farmer data to Firestore
   Future<
     void

@@ -136,8 +136,9 @@ buildTaskList() {
                                     DateTime? date,
                                   ) {
                                     if (date ==
-                                        null)
+                                        null) {
                                       return '';
+                                    }
                                     return '${date.day}/${date.month}/${date.year}';
                                   }
 

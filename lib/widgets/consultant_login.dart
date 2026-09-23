@@ -3,7 +3,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter_easyloading/flutter_easyloading.dart';
 import 'package:innotegy/constants.dart';
 import 'package:innotegy/screens/consultant/consultant_dashboard.dart';
+import 'package:innotegy/screens/consultant/manager_register_screen.dart';
 import 'package:innotegy/services/auth_service.dart';
+import 'package:innotegy/widgets/manager_register.dart';
 
 class ConsultantLogin
     extends
@@ -285,6 +287,47 @@ class _ConsultantLoginState
                     fontWeight: FontWeight.w600,
                     color: Colors.white,
                   ),
+                ),
+              ),
+            ),
+            SizedBox(
+              height: 20,
+            ),
+            Center(
+              child: Text.rich(
+                TextSpan(
+                  children:
+                      <
+                        InlineSpan
+                      >[
+                        WidgetSpan(
+                          child: Text(
+                            'Don\'t have an account? ',
+                          ),
+                        ),
+                        WidgetSpan(
+                          child: GestureDetector(
+                            onTap: () {
+                              Navigator.of(
+                                context,
+                              ).push(
+                                MaterialPageRoute(
+                                  builder:
+                                      (
+                                        context,
+                                      ) => ManagerRegisterScreen(),
+                                ),
+                              );
+                            },
+                            child: Text(
+                              ' Register Account',
+                              style: TextStyle(
+                                color: primaryOliveColor,
+                              ),
+                            ),
+                          ),
+                        ),
+                      ],
                 ),
               ),
             ),

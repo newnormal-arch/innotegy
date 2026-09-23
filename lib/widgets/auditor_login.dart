@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:innotegy/constants.dart';
+import 'package:innotegy/screens/auditor/auditor_register_screen.dart';
 
 class AuditorLogin
     extends
@@ -151,6 +152,47 @@ class AuditorLogin
                     fontWeight: FontWeight.w600,
                     color: Colors.white,
                   ),
+                ),
+              ),
+            ),
+            SizedBox(
+              height: 20,
+            ),
+            Center(
+              child: Text.rich(
+                TextSpan(
+                  children:
+                      <
+                        InlineSpan
+                      >[
+                        WidgetSpan(
+                          child: Text(
+                            'Don\'t have an account? ',
+                          ),
+                        ),
+                        WidgetSpan(
+                          child: GestureDetector(
+                            onTap: () {
+                              Navigator.of(
+                                context,
+                              ).push(
+                                MaterialPageRoute(
+                                  builder:
+                                      (
+                                        context,
+                                      ) => AuditorRegisterScreen(),
+                                ),
+                              );
+                            },
+                            child: Text(
+                              ' Register Account',
+                              style: TextStyle(
+                                color: primaryOliveColor,
+                              ),
+                            ),
+                          ),
+                        ),
+                      ],
                 ),
               ),
             ),
