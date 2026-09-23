@@ -5,7 +5,6 @@ import 'package:innotegy/constants.dart';
 import 'package:innotegy/screens/consultant/consultant_dashboard.dart';
 import 'package:innotegy/screens/consultant/manager_register_screen.dart';
 import 'package:innotegy/services/auth_service.dart';
-import 'package:innotegy/widgets/manager_register.dart';
 
 class ConsultantLogin
     extends
