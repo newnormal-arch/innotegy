@@ -163,14 +163,12 @@ class AuthService {
             'phone': phone,
             'role': '',
             'status': 'Inactive',
-            'allocatedFarms': {
-              '',
-            },
+            'allocatedFarms': '',
           },
         );
   }
 
-  // Save manager data to Firestore
+  // Save Auditor data to Firestore
   Future<
     void
   >
@@ -200,7 +198,7 @@ class AuthService {
         );
   }
 
-  // Save farmer data to Firestore
+  // Save farm data to Firestore
   Future<
     void
   >

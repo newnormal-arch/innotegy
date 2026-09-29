@@ -50,7 +50,7 @@ class _MainConsultantDashboardState
                         ),
                       ),
                       Text(
-                        "Good morning, Arthur. Here's what's happening on your farms today.",
+                        "Good morning. Here's what's happening on your farms today.",
                         style: TextStyle(
                           fontSize: 18,
                           fontWeight: FontWeight.w500,

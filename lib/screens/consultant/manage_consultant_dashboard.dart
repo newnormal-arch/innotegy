@@ -281,7 +281,7 @@ class _ManageConsultantDashboardState
                                     Expanded(
                                       flex: 1,
                                       child: Text(
-                                        doc['allocatedFarm'] ??
+                                        doc['allocatedFarms'] ??
                                             '',
                                       ),
                                     ),
