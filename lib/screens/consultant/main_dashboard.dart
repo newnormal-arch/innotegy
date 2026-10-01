@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:innotegy/constants.dart';
+import 'package:innotegy/widgets/local_weather_widget.dart';
 
 class MainConsultantDashboard
     extends
@@ -92,6 +93,7 @@ class _MainConsultantDashboardState
                 ],
               ),
               // Add your dashboard content here
+              LocalWeatherWidget(),
             ],
           ),
         ),
