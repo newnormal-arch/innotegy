@@ -658,6 +658,10 @@ showAddTaskDialog(
                                   .collection(
                                     'farmer',
                                   )
+                                  .where(
+                                    'allocatedFarm',
+                                    isEqualTo: farm.name,
+                                  )
                                   .get(),
                               builder:
                                   (
@@ -690,7 +694,7 @@ showAddTaskDialog(
                                     return DropdownButtonFormField<
                                       String
                                     >(
-                                      value: selectedFarmerId,
+                                      initialValue: selectedFarmerId,
                                       isExpanded: true,
                                       decoration: InputDecoration(
                                         labelText: 'Assign to Farmer',
@@ -744,7 +748,7 @@ showAddTaskDialog(
                               height: 24,
                             ),
 
-                            // Actions
+                            // ActionsS
                             Row(
                               mainAxisAlignment: MainAxisAlignment.end,
                               children: [
