@@ -140,149 +140,172 @@ class TaskSegmentScreen
                                 12,
                               ),
                             ),
-                            child: Padding(
-                              padding: const EdgeInsets.all(
-                                16.0,
-                              ),
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  // Stage Header
-                                  Row(
-                                    children: [
-                                      Container(
-                                        padding: const EdgeInsets.symmetric(
-                                          horizontal: 12,
-                                          vertical: 6,
+                            child: Theme(
+                              // Removes default top/bottom borders when expanded
+                              data:
+                                  Theme.of(
+                                    context,
+                                  ).copyWith(
+                                    dividerColor: Colors.transparent,
+                                  ),
+                              child: ExpansionTile(
+                                initiallyExpanded: true,
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(
+                                    12,
+                                  ),
+                                ),
+                                tilePadding: const EdgeInsets.symmetric(
+                                  horizontal: 16.0,
+                                  vertical: 4.0,
+                                ),
+                                // Stage Header
+                                title: Row(
+                                  children: [
+                                    Container(
+                                      padding: const EdgeInsets.symmetric(
+                                        horizontal: 12,
+                                        vertical: 6,
+                                      ),
+                                      decoration: BoxDecoration(
+                                        color: primaryGreenColor.withValues(
+                                          alpha: 0.15,
                                         ),
-                                        decoration: BoxDecoration(
-                                          color: primaryGreenColor.withValues(
-                                            alpha: 0.15,
-                                          ),
-                                          borderRadius: BorderRadius.circular(
-                                            8,
-                                          ),
-                                        ),
-                                        child: Text(
-                                          stageName,
-                                          style: const TextStyle(
-                                            fontSize: 18,
-                                            fontWeight: FontWeight.bold,
-                                            color: primaryGreenColor,
-                                          ),
+                                        borderRadius: BorderRadius.circular(
+                                          8,
                                         ),
                                       ),
-                                      const Spacer(),
-                                      // Add sub-task to existing stage
-                                      IconButton(
-                                        icon: const Icon(
-                                          Icons.add_circle_outline,
+                                      child: Text(
+                                        stageName,
+                                        style: const TextStyle(
+                                          fontSize: 18,
+                                          fontWeight: FontWeight.bold,
                                           color: primaryGreenColor,
                                         ),
-                                        tooltip: 'Add task to this stage',
-                                        onPressed: () => _showAddTaskToStageDialog(
-                                          context,
-                                          doc.id,
-                                          stageName,
-                                        ),
                                       ),
-                                      // Delete entire stage
-                                      IconButton(
-                                        icon: const Icon(
-                                          Icons.delete_outline,
-                                          color: Colors.redAccent,
-                                        ),
-                                        tooltip: 'Delete Stage',
-                                        onPressed: () => _deleteStage(
-                                          doc.id,
-                                        ),
+                                    ),
+                                    const Spacer(),
+                                    // Add sub-task to existing stage
+                                    IconButton(
+                                      icon: const Icon(
+                                        Icons.add_circle_outline,
+                                        color: primaryGreenColor,
                                       ),
-                                    ],
-                                  ),
-                                  const SizedBox(
-                                    height: 12,
-                                  ),
-                                  const Divider(
-                                    height: 1,
-                                  ),
-                                  const SizedBox(
-                                    height: 12,
-                                  ),
+                                      tooltip: 'Add task to this stage',
+                                      onPressed: () => _showAddTaskToStageDialog(
+                                        context,
+                                        doc.id,
+                                        stageName,
+                                      ),
+                                    ),
+                                    // Delete entire stage
+                                    IconButton(
+                                      icon: const Icon(
+                                        Icons.delete_outline,
+                                        color: Colors.redAccent,
+                                      ),
+                                      tooltip: 'Delete Stage',
+                                      onPressed: () => _deleteStage(
+                                        doc.id,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                                // Collapsible Content
+                                children: [
+                                  Padding(
+                                    padding: const EdgeInsets.only(
+                                      left: 16.0,
+                                      right: 16.0,
+                                      bottom: 16.0,
+                                    ),
+                                    child: Column(
+                                      crossAxisAlignment: CrossAxisAlignment.start,
+                                      children: [
+                                        const Divider(
+                                          height: 1,
+                                        ),
+                                        const SizedBox(
+                                          height: 12,
+                                        ),
 
-                                  // List of Tasks under this stage
-                                  if (tasks.isEmpty)
-                                    const Text(
-                                      'No tasks added to this stage yet.',
-                                      style: TextStyle(
-                                        color: Colors.grey,
-                                        fontStyle: FontStyle.italic,
-                                      ),
-                                    )
-                                  else
-                                    ListView.separated(
-                                      shrinkWrap: true,
-                                      physics: const NeverScrollableScrollPhysics(),
-                                      itemCount: tasks.length,
-                                      separatorBuilder:
-                                          (
-                                            context,
-                                            i,
-                                          ) => const SizedBox(
-                                            height: 6,
-                                          ),
-                                      itemBuilder:
-                                          (
-                                            context,
-                                            taskIndex,
-                                          ) {
-                                            final task = tasks[taskIndex];
-                                            return Container(
-                                              padding: const EdgeInsets.symmetric(
-                                                horizontal: 12,
-                                                vertical: 8,
-                                              ),
-                                              decoration: BoxDecoration(
-                                                color: Colors.grey.shade100,
-                                                borderRadius: BorderRadius.circular(
-                                                  8,
+                                        // List of Tasks under this stage
+                                        if (tasks.isEmpty)
+                                          const Text(
+                                            'No tasks added to this stage yet.',
+                                            style: TextStyle(
+                                              color: Colors.grey,
+                                              fontStyle: FontStyle.italic,
+                                            ),
+                                          )
+                                        else
+                                          ListView.separated(
+                                            shrinkWrap: true,
+                                            physics: const NeverScrollableScrollPhysics(),
+                                            itemCount: tasks.length,
+                                            separatorBuilder:
+                                                (
+                                                  context,
+                                                  i,
+                                                ) => const SizedBox(
+                                                  height: 6,
                                                 ),
-                                              ),
-                                              child: Row(
-                                                children: [
-                                                  const Icon(
-                                                    Icons.check_circle_outline,
-                                                    size: 18,
-                                                    color: primaryGreenColor,
-                                                  ),
-                                                  const SizedBox(
-                                                    width: 10,
-                                                  ),
-                                                  Expanded(
-                                                    child: Text(
-                                                      task,
-                                                      style: const TextStyle(
-                                                        fontSize: 15,
-                                                        fontWeight: FontWeight.w500,
+                                            itemBuilder:
+                                                (
+                                                  context,
+                                                  taskIndex,
+                                                ) {
+                                                  final task = tasks[taskIndex];
+                                                  return Container(
+                                                    padding: const EdgeInsets.symmetric(
+                                                      horizontal: 12,
+                                                      vertical: 8,
+                                                    ),
+                                                    decoration: BoxDecoration(
+                                                      color: Colors.grey.shade100,
+                                                      borderRadius: BorderRadius.circular(
+                                                        8,
                                                       ),
                                                     ),
-                                                  ),
-                                                  // Delete single sub-task
-                                                  InkWell(
-                                                    onTap: () => _removeTaskFromStage(
-                                                      doc.id,
-                                                      task,
+                                                    child: Row(
+                                                      children: [
+                                                        const Icon(
+                                                          Icons.check_circle_outline,
+                                                          size: 18,
+                                                          color: primaryGreenColor,
+                                                        ),
+                                                        const SizedBox(
+                                                          width: 10,
+                                                        ),
+                                                        Expanded(
+                                                          child: Text(
+                                                            task,
+                                                            style: const TextStyle(
+                                                              fontSize: 15,
+                                                              fontWeight: FontWeight.w500,
+                                                            ),
+                                                          ),
+                                                        ),
+                                                        // Delete single sub-task
+                                                        InkWell(
+                                                          onTap: () => _removeTaskFromStage(
+                                                            doc.id,
+                                                            task,
+                                                          ),
+                                                          child: const Icon(
+                                                            Icons.close,
+                                                            size: 18,
+                                                            color: Colors.grey,
+                                                          ),
+                                                        ),
+                                                      ],
                                                     ),
-                                                    child: const Icon(
-                                                      Icons.close,
-                                                      size: 18,
-                                                      color: Colors.grey,
-                                                    ),
-                                                  ),
-                                                ],
-                                              ),
-                                            );
-                                          },
+                                                  );
+                                                },
+                                          ),
+                                      ],
                                     ),
+                                  ),
                                 ],
                               ),
                             ),
@@ -604,7 +627,7 @@ class TaskSegmentScreen
                 autofocus: true,
                 decoration: InputDecoration(
                   labelText: 'Task Name',
-                  hintText: 'e.g., Water testing',
+                  hintText: 'e.g., Quality Check',
                   border: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(
                       8,
@@ -623,8 +646,13 @@ class TaskSegmentScreen
                 ),
                 ElevatedButton(
                   onPressed: () async {
-                    final newTask = taskController.text.trim();
-                    if (newTask.isEmpty) return;
+                    final task = taskController.text.trim();
+                    if (task.isEmpty) {
+                      EasyLoading.showError(
+                        'Please enter a task name',
+                      );
+                      return;
+                    }
 
                     EasyLoading.show(
                       status: 'Adding task...',
@@ -641,7 +669,7 @@ class TaskSegmentScreen
                             {
                               'tasks': FieldValue.arrayUnion(
                                 [
-                                  newTask,
+                                  task,
                                 ],
                               ),
                             },
@@ -665,9 +693,14 @@ class TaskSegmentScreen
                   },
                   style: ElevatedButton.styleFrom(
                     backgroundColor: primaryGreenColor,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(
+                        8,
+                      ),
+                    ),
                   ),
                   child: const Text(
-                    'Add Task',
+                    'Add',
                     style: TextStyle(
                       color: Colors.white,
                     ),
@@ -679,13 +712,13 @@ class TaskSegmentScreen
     );
   }
 
-  // HELPER: Remove single task from array
+  // Remove a single task from a stage in Firestore
   Future<
     void
   >
   _removeTaskFromStage(
     String docId,
-    String taskName,
+    String task,
   ) async {
     try {
       await FirebaseFirestore.instance
@@ -699,12 +732,12 @@ class TaskSegmentScreen
             {
               'tasks': FieldValue.arrayRemove(
                 [
-                  taskName,
+                  task,
                 ],
               ),
             },
           );
-      EasyLoading.showToast(
+      EasyLoading.showSuccess(
         'Task removed',
       );
     } catch (
@@ -716,13 +749,16 @@ class TaskSegmentScreen
     }
   }
 
-  // HELPER: Delete entire stage
+  // Delete an entire stage document from Firestore
   Future<
     void
   >
   _deleteStage(
     String docId,
   ) async {
+    EasyLoading.show(
+      status: 'Deleting stage...',
+    );
     try {
       await FirebaseFirestore.instance
           .collection(
@@ -732,7 +768,7 @@ class TaskSegmentScreen
             docId,
           )
           .delete();
-      EasyLoading.showToast(
+      EasyLoading.showSuccess(
         'Stage deleted',
       );
     } catch (
