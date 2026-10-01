@@ -8,6 +8,7 @@ import 'package:innotegy/screens/consultant/manage_consultant_dashboard.dart';
 import 'package:innotegy/screens/farm_list_screen.dart';
 import 'package:innotegy/screens/farmer/manage_farmers_dashboard.dart';
 import 'package:innotegy/services/auth_service.dart';
+import 'package:innotegy/screens/tasks/task_segment_screen.dart';
 
 class ConsultantDashboard
     extends
@@ -206,6 +207,19 @@ class _ConsultantDashboardState
                       ),
                 ),
                 SideMenuItem(
+                  title: 'Task Managment',
+                  icon: const Icon(
+                    Icons.settings_rounded,
+                  ),
+                  onTap:
+                      (
+                        index,
+                        controller,
+                      ) => controller.goTo(
+                        index,
+                      ),
+                ),
+                SideMenuItem(
                   title: 'Settings',
                   icon: const Icon(
                     Icons.settings_rounded,
@@ -229,6 +243,7 @@ class _ConsultantDashboardState
                   ManageFarmersDashboard(),
                   ManageConsultantDashboard(),
                   FarmListScreen(),
+                  TaskSegmentScreen(),
                   // FarmDashboard(),
                   const Center(
                     child: Text(

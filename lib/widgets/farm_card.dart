@@ -307,7 +307,13 @@ showAddTaskDialog(
   BuildContext context,
   FarmModel farm,
 ) {
-  final TextEditingController taskNameController = TextEditingController();
+  String? selectedStageId;
+  String? selectedStageName;
+  String? selectedTaskName;
+  List<
+    String
+  >
+  availableTasks = [];
   DateTime? startDate;
   DateTime? endDate;
   String? selectedFarmerId;
@@ -391,22 +397,194 @@ showAddTaskDialog(
                               height: 16,
                             ),
 
-                            // Task Name Field
-                            TextField(
-                              controller: taskNameController,
-                              decoration: InputDecoration(
-                                labelText: 'Task Name',
-                                hintText: 'e.g., Irrigation, Fertilization',
-                                border: OutlineInputBorder(
-                                  borderRadius: BorderRadius.circular(
-                                    8,
-                                  ),
-                                ),
-                              ),
+                            // 1. Stage Dropdown
+                            FutureBuilder<
+                              QuerySnapshot
+                            >(
+                              future: FirebaseFirestore.instance
+                                  .collection(
+                                    'task_segments',
+                                  )
+                                  .orderBy(
+                                    'createdAt',
+                                    descending: false,
+                                  )
+                                  .get(),
+                              builder:
+                                  (
+                                    context,
+                                    snapshot,
+                                  ) {
+                                    if (snapshot.connectionState ==
+                                        ConnectionState.waiting) {
+                                      return const Center(
+                                        child: CircularProgressIndicator(),
+                                      );
+                                    }
+
+                                    if (snapshot.hasError) {
+                                      return Text(
+                                        'Error loading stages: ${snapshot.error}',
+                                      );
+                                    }
+
+                                    final stageDocs =
+                                        snapshot.data?.docs ??
+                                        [];
+
+                                    if (stageDocs.isEmpty) {
+                                      return const Text(
+                                        'No task stages found. Please add task segments first.',
+                                        style: TextStyle(
+                                          color: Colors.red,
+                                        ),
+                                      );
+                                    }
+
+                                    return DropdownButtonFormField<
+                                      String
+                                    >(
+                                      value: selectedStageId, // Added value binding
+                                      isExpanded: true,
+                                      decoration: InputDecoration(
+                                        labelText: 'Select Stage',
+                                        border: OutlineInputBorder(
+                                          borderRadius: BorderRadius.circular(
+                                            8,
+                                          ),
+                                        ),
+                                        prefixIcon: const Icon(
+                                          Icons.category_outlined,
+                                        ),
+                                      ),
+                                      hint: const Text(
+                                        'Select Stage',
+                                      ),
+                                      items: stageDocs.map(
+                                        (
+                                          doc,
+                                        ) {
+                                          final data =
+                                              doc.data()
+                                                  as Map<
+                                                    String,
+                                                    dynamic
+                                                  >;
+                                          final String stageName =
+                                              data['stage'] ??
+                                              'Unnamed Stage';
+                                          return DropdownMenuItem<
+                                            String
+                                          >(
+                                            value: doc.id,
+                                            child: Text(
+                                              stageName,
+                                            ),
+                                          );
+                                        },
+                                      ).toList(),
+                                      onChanged:
+                                          (
+                                            docId,
+                                          ) {
+                                            if (docId !=
+                                                null) {
+                                              final selectedDoc = stageDocs.firstWhere(
+                                                (
+                                                  doc,
+                                                ) =>
+                                                    doc.id ==
+                                                    docId,
+                                              );
+                                              final data =
+                                                  selectedDoc.data()
+                                                      as Map<
+                                                        String,
+                                                        dynamic
+                                                      >;
+                                              final String stageName =
+                                                  data['stage'] ??
+                                                  '';
+                                              final List<
+                                                dynamic
+                                              >
+                                              rawTasks =
+                                                  data['tasks'] ??
+                                                  [];
+
+                                              setState(
+                                                () {
+                                                  selectedStageId = docId;
+                                                  selectedStageName = stageName;
+                                                  availableTasks =
+                                                      List<
+                                                        String
+                                                      >.from(
+                                                        rawTasks,
+                                                      );
+                                                  selectedTaskName = null; // Reset sub-task selection
+                                                },
+                                              );
+                                            }
+                                          },
+                                    );
+                                  },
                             ),
                             const SizedBox(
                               height: 16,
                             ),
+
+                            // 2. Sub-Task Dropdown (Appears once a stage is selected)
+                            if (selectedStageId !=
+                                null) ...[
+                              DropdownButtonFormField<
+                                String
+                              >(
+                                value: selectedTaskName,
+                                isExpanded: true,
+                                decoration: InputDecoration(
+                                  labelText: 'Select Task',
+                                  border: OutlineInputBorder(
+                                    borderRadius: BorderRadius.circular(
+                                      8,
+                                    ),
+                                  ),
+                                  prefixIcon: const Icon(
+                                    Icons.assignment_outlined,
+                                  ),
+                                ),
+                                hint: const Text(
+                                  'Select Task',
+                                ),
+                                items: availableTasks.map(
+                                  (
+                                    task,
+                                  ) {
+                                    return DropdownMenuItem<
+                                      String
+                                    >(
+                                      value: task,
+                                      child: Text(
+                                        task,
+                                      ),
+                                    );
+                                  },
+                                ).toList(),
+                                onChanged:
+                                    (
+                                      val,
+                                    ) {
+                                      setState(
+                                        () {
+                                          selectedTaskName = val;
+                                        },
+                                      );
+                                    },
+                              ),
+                              const SizedBox(
+                                height: 16,
+                              ),
+                            ],
 
                             // Start & End Date Pickers
                             Row(
@@ -512,7 +690,7 @@ showAddTaskDialog(
                                     return DropdownButtonFormField<
                                       String
                                     >(
-                                      initialValue: selectedFarmerId,
+                                      value: selectedFarmerId,
                                       isExpanded: true,
                                       decoration: InputDecoration(
                                         labelText: 'Assign to Farmer',
@@ -520,6 +698,9 @@ showAddTaskDialog(
                                           borderRadius: BorderRadius.circular(
                                             8,
                                           ),
+                                        ),
+                                        prefixIcon: const Icon(
+                                          Icons.person_outline,
                                         ),
                                       ),
                                       hint: const Text(
@@ -580,7 +761,10 @@ showAddTaskDialog(
                                 ),
                                 ElevatedButton(
                                   onPressed:
-                                      (taskNameController.text.trim().isEmpty ||
+                                      (selectedStageName ==
+                                              null ||
+                                          selectedTaskName ==
+                                              null ||
                                           startDate ==
                                               null ||
                                           endDate ==
@@ -599,7 +783,8 @@ showAddTaskDialog(
                                                 )
                                                 .add(
                                                   {
-                                                    'taskName': taskNameController.text.trim(),
+                                                    'stage': selectedStageName,
+                                                    'taskName': selectedTaskName,
                                                     'startDate': Timestamp.fromDate(
                                                       startDate!,
                                                     ),
