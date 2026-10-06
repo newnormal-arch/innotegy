@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_easyloading/flutter_easyloading.dart';
 import 'package:innotegy/constants.dart';
 import 'package:innotegy/screens/farmer/farmer_dashboard.dart';
+import 'package:innotegy/screens/forgot_password.dart';
 import 'package:innotegy/screens/register_screen.dart';
 import 'package:innotegy/services/auth_service.dart';
 
@@ -139,7 +140,18 @@ class _FarmerLoginState
               mainAxisAlignment: MainAxisAlignment.end,
               children: [
                 GestureDetector(
-                  onTap: () {},
+                  onTap: () {
+                    Navigator.of(
+                      context,
+                    ).push(
+                      MaterialPageRoute(
+                        builder:
+                            (
+                              context,
+                            ) => ForgotPasswordScreen(),
+                      ),
+                    );
+                  },
                   child: Text(
                     'Forgot Password?',
                     style: TextStyle(

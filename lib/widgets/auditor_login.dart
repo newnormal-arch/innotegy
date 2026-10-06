@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:innotegy/constants.dart';
 import 'package:innotegy/screens/auditor/auditor_register_screen.dart';
+import 'package:innotegy/screens/forgot_password.dart';
 
 class AuditorLogin
     extends
@@ -117,7 +118,18 @@ class AuditorLogin
               mainAxisAlignment: MainAxisAlignment.end,
               children: [
                 GestureDetector(
-                  onTap: () {},
+                  onTap: () {
+                    Navigator.of(
+                      context,
+                    ).push(
+                      MaterialPageRoute(
+                        builder:
+                            (
+                              context,
+                            ) => ForgotPasswordScreen(),
+                      ),
+                    );
+                  },
                   child: Text(
                     'Forgot Password?',
                     style: TextStyle(

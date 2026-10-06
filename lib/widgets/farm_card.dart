@@ -444,7 +444,7 @@ showAddTaskDialog(
                                     return DropdownButtonFormField<
                                       String
                                     >(
-                                      value: selectedStageId, // Added value binding
+                                      initialValue: selectedStageId, // Added value binding
                                       isExpanded: true,
                                       decoration: InputDecoration(
                                         labelText: 'Select Stage',
@@ -540,7 +540,7 @@ showAddTaskDialog(
                               DropdownButtonFormField<
                                 String
                               >(
-                                value: selectedTaskName,
+                                initialValue: selectedTaskName,
                                 isExpanded: true,
                                 decoration: InputDecoration(
                                   labelText: 'Select Task',
