@@ -256,6 +256,31 @@ class _FarmerDashboardState
                                       'Inactive')
                                   .toString();
 
+                          // Calculate Total Area for allocated farm(s)
+                          final double totalAreaInHectares = _farms
+                              .where(
+                                (
+                                  farm,
+                                ) =>
+                                    farm.name ==
+                                    allocatedFarm,
+                              )
+                              .fold(
+                                0.0,
+                                (
+                                  sum,
+                                  farm,
+                                ) =>
+                                    sum +
+                                    farm.areaInHectares,
+                              );
+
+                          final String formattedTotalArea =
+                              totalAreaInHectares >
+                                  0
+                              ? '${totalAreaInHectares.toStringAsFixed(2)} ha'
+                              : '0 ha';
+
                           return SingleChildScrollView(
                             child: Padding(
                               padding: const EdgeInsets.all(
@@ -295,34 +320,10 @@ class _FarmerDashboardState
                                           _buildStatusPill(
                                             status,
                                           ),
-                                          const SizedBox(
-                                            width: 16,
-                                          ),
-                                          ElevatedButton(
-                                            onPressed: () {},
-                                            style: ElevatedButton.styleFrom(
-                                              backgroundColor: primaryGreenColor,
-                                              padding: const EdgeInsets.symmetric(
-                                                horizontal: 40,
-                                                vertical: 12,
-                                              ),
-                                              shape: RoundedRectangleBorder(
-                                                borderRadius: BorderRadius.circular(
-                                                  8,
-                                                ),
-                                              ),
-                                            ),
-                                            child: const Text(
-                                              'Log Activity',
-                                              style: TextStyle(
-                                                fontWeight: FontWeight.w600,
-                                                color: Colors.white,
-                                              ),
-                                            ),
-                                          ),
-                                          const SizedBox(
-                                            width: 16,
-                                          ),
+
+                                          // const SizedBox(
+                                          //   width: 16,
+                                          // ),
                                           // ElevatedButton(
                                           //   onPressed: () {},
                                           //   style: ElevatedButton.styleFrom(
@@ -338,12 +339,15 @@ class _FarmerDashboardState
                                           //     ),
                                           //   ),
                                           //   child: const Text(
-                                          //     'Add Task',
+                                          //     'Log Activity',
                                           //     style: TextStyle(
                                           //       fontWeight: FontWeight.w600,
                                           //       color: Colors.white,
                                           //     ),
                                           //   ),
+                                          // ),
+                                          // const SizedBox(
+                                          //   width: 16,
                                           // ),
                                         ],
                                       ),
@@ -355,6 +359,7 @@ class _FarmerDashboardState
                                   Row(
                                     mainAxisAlignment: MainAxisAlignment.start,
                                     children: [
+                                      //CARD 1: Total Area
                                       SizedBox(
                                         width: 300,
                                         height: 150,
@@ -364,20 +369,20 @@ class _FarmerDashboardState
                                               16.0,
                                             ),
                                             child: Column(
-                                              children: const [
-                                                Text(
+                                              children: [
+                                                const Text(
                                                   'Total Area',
                                                   style: TextStyle(
                                                     fontSize: 18,
                                                     fontWeight: FontWeight.w500,
                                                   ),
                                                 ),
-                                                SizedBox(
+                                                const SizedBox(
                                                   height: 8,
                                                 ),
                                                 Text(
-                                                  '90 ha',
-                                                  style: TextStyle(
+                                                  formattedTotalArea,
+                                                  style: const TextStyle(
                                                     fontSize: 48,
                                                     fontWeight: FontWeight.bold,
                                                   ),
@@ -419,38 +424,119 @@ class _FarmerDashboardState
                                           ),
                                         ),
                                       ),
-                                      SizedBox(
-                                        width: 300,
-                                        height: 150,
-                                        child: Card(
-                                          child: Padding(
-                                            padding: const EdgeInsets.all(
-                                              16.0,
-                                            ),
-                                            child: Column(
-                                              children: const [
-                                                Text(
-                                                  'Completed Tasks',
-                                                  style: TextStyle(
-                                                    fontSize: 18,
-                                                    fontWeight: FontWeight.w500,
+
+                                      // CARD 3: Completed Tasks
+                                      StreamBuilder<
+                                        QuerySnapshot<
+                                          Map<
+                                            String,
+                                            dynamic
+                                          >
+                                        >
+                                      >(
+                                        stream:
+                                            _uid !=
+                                                null
+                                            ? FirebaseFirestore.instance
+                                                  .collection(
+                                                    'tasks',
+                                                  )
+                                                  .where(
+                                                    'farmerId',
+                                                    isEqualTo: _uid,
+                                                  )
+                                                  .snapshots()
+                                            : null,
+                                        builder:
+                                            (
+                                              context,
+                                              taskSnapshot,
+                                            ) {
+                                              final taskDocs =
+                                                  taskSnapshot.data?.docs ??
+                                                  [];
+                                              final int totalTasks = taskDocs.length;
+                                              final int completedTasks = taskDocs.where(
+                                                (
+                                                  doc,
+                                                ) {
+                                                  final data = doc.data();
+                                                  return data['isCompleted'] ==
+                                                          true ||
+                                                      (data['status'] ??
+                                                                  '')
+                                                              .toString()
+                                                              .toLowerCase() ==
+                                                          'completed';
+                                                },
+                                              ).length;
+
+                                              return SizedBox(
+                                                width: 300,
+                                                height: 150,
+                                                child: Card(
+                                                  child: Padding(
+                                                    padding: const EdgeInsets.all(
+                                                      16.0,
+                                                    ),
+                                                    child: Column(
+                                                      children: [
+                                                        const Text(
+                                                          'Completed Tasks',
+                                                          style: TextStyle(
+                                                            fontSize: 18,
+                                                            fontWeight: FontWeight.w500,
+                                                          ),
+                                                        ),
+                                                        const SizedBox(
+                                                          height: 8,
+                                                        ),
+                                                        Text(
+                                                          '$completedTasks/$totalTasks',
+                                                          style: const TextStyle(
+                                                            fontSize: 48,
+                                                            fontWeight: FontWeight.bold,
+                                                          ),
+                                                        ),
+                                                      ],
+                                                    ),
                                                   ),
                                                 ),
-                                                SizedBox(
-                                                  height: 8,
-                                                ),
-                                                Text(
-                                                  '18/24',
-                                                  style: TextStyle(
-                                                    fontSize: 48,
-                                                    fontWeight: FontWeight.bold,
-                                                  ),
-                                                ),
-                                              ],
-                                            ),
-                                          ),
-                                        ),
+                                              );
+                                            },
                                       ),
+                                      // SizedBox(
+                                      //   width: 300,
+                                      //   height: 150,
+                                      //   child: Card(
+                                      //     child: Padding(
+                                      //       padding: const EdgeInsets.all(
+                                      //         16.0,
+                                      //       ),
+                                      //       child: Column(
+                                      //         children: const [
+                                      //           Text(
+                                      //             'Completed Tasks',
+                                      //             style: TextStyle(
+                                      //               fontSize: 18,
+                                      //               fontWeight: FontWeight.w500,
+                                      //             ),
+                                      //           ),
+                                      //           SizedBox(
+                                      //             height: 8,
+                                      //           ),
+                                      //           Text(
+                                      //             '18/24',
+                                      //             style: TextStyle(
+                                      //               fontSize: 48,
+                                      //               fontWeight: FontWeight.bold,
+                                      //             ),
+                                      //           ),
+                                      //         ],
+                                      //       ),
+                                      //     ),
+                                      //   ),
+                                      // ),
                                       SizedBox(
                                         width: 300,
                                         height: 150,

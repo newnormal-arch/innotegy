@@ -1,4 +1,5 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_easyloading/flutter_easyloading.dart';
 import 'package:flutter_map/flutter_map.dart';
@@ -798,6 +799,11 @@ showAddTaskDialog(
                                                     'farmerId': selectedFarmerId,
                                                     'farmName': farm.name,
                                                     'createdAt': FieldValue.serverTimestamp(),
+                                                    'createdBy':
+                                                        FirebaseAuth.instance.currentUser?.uid ??
+                                                        'unknown',
+                                                    'isCompleted': false,
+                                                    'status': 'Pending',
                                                   },
                                                 );
 
