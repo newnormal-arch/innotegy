@@ -120,6 +120,7 @@ class AuthService {
     required String fullName,
     required String email,
     required String phone,
+    String? farm,
   }) async {
     await FirebaseFirestore.instance
         .collection(
@@ -135,7 +136,12 @@ class AuthService {
             'phone': phone,
             'status': 'inactive',
             'role': '',
-            'allocatedFarm': '',
+            'allocatedFarms': FieldValue.arrayUnion(
+              [
+                farm ??
+                    '',
+              ],
+            ),
           },
         );
   }
@@ -148,6 +154,7 @@ class AuthService {
     required String fullName,
     required String email,
     required String phone,
+    String? farm,
   }) async {
     await FirebaseFirestore.instance
         .collection(
@@ -163,7 +170,12 @@ class AuthService {
             'phone': phone,
             'role': '',
             'status': 'Inactive',
-            'allocatedFarms': '',
+            'allocatedFarms': FieldValue.arrayUnion(
+              [
+                farm ??
+                    '',
+              ],
+            ),
           },
         );
   }

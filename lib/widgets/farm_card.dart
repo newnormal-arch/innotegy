@@ -803,7 +803,7 @@ showAddTaskDialog(
                                                         FirebaseAuth.instance.currentUser?.uid ??
                                                         'unknown',
                                                     'isCompleted': false,
-                                                    'status': 'Pending',
+                                                    'status': 'Not Started',
                                                   },
                                                 );
 
@@ -1027,7 +1027,11 @@ showAllocateManagerDialog(
                                               )
                                               .update(
                                                 {
-                                                  'allocatedFarm': farm.name,
+                                                  'allocatedFarms': FieldValue.arrayUnion(
+                                                    [
+                                                      farm.name,
+                                                    ],
+                                                  ),
                                                 },
                                               );
 
@@ -1258,7 +1262,11 @@ showAllocateFarmerDialog(
                                               )
                                               .update(
                                                 {
-                                                  'allocatedFarm': farm.name,
+                                                  'allocatedFarms': FieldValue.arrayUnion(
+                                                    [
+                                                      farm.name,
+                                                    ],
+                                                  ),
                                                 },
                                               );
 
