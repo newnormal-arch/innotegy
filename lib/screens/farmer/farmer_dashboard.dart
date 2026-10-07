@@ -571,78 +571,79 @@ class _FarmerDashboardState
                                       ),
                                     ],
                                   ),
-                                  Card(
-                                    child: Padding(
-                                      padding: const EdgeInsets.all(
-                                        16.0,
-                                      ),
-                                      child: Column(
-                                        crossAxisAlignment: CrossAxisAlignment.start,
-                                        children: [
-                                          const Text(
-                                            'Quick Actions',
-                                            style: TextStyle(
-                                              fontSize: 18,
-                                              fontWeight: FontWeight.w600,
-                                            ),
-                                          ),
-                                          const SizedBox(
-                                            height: 8,
-                                          ),
-                                          const Text(
-                                            'Manage your farm activities and tasks with ease using our quick action buttons below.',
-                                            style: TextStyle(
-                                              fontSize: 14,
-                                              fontWeight: FontWeight.w500,
-                                            ),
-                                          ),
-                                          const SizedBox(
-                                            height: 20,
-                                          ),
-                                          Row(
-                                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                                            children: [
-                                              Expanded(
-                                                child: ElevatedButton(
-                                                  onPressed: () {},
-                                                  child: const Text(
-                                                    'Manage Crops',
-                                                  ),
-                                                ),
-                                              ),
-                                              const SizedBox(
-                                                width: 16,
-                                              ),
-                                              Expanded(
-                                                child: ElevatedButton(
-                                                  onPressed: () {},
-                                                  child: const Text(
-                                                    'View Reports',
-                                                  ),
-                                                ),
-                                              ),
-                                              const SizedBox(
-                                                width: 16,
-                                              ),
-                                              Expanded(
-                                                child: ElevatedButton(
-                                                  onPressed: () {
-                                                    _newTaskDialog(
-                                                      context,
-                                                    );
-                                                  },
-                                                  child: const Text(
-                                                    'Schedule Tasks',
-                                                  ),
-                                                ),
-                                              ),
-                                            ],
-                                          ),
-                                        ],
-                                      ),
-                                    ),
-                                  ),
+                                  //TODO: Add quick action buttons for managing crops, viewing reports, and scheduling tasks
 
+                                  // Card(
+                                  //   child: Padding(
+                                  //     padding: const EdgeInsets.all(
+                                  //       16.0,
+                                  //     ),
+                                  //     child: Column(
+                                  //       crossAxisAlignment: CrossAxisAlignment.start,
+                                  //       children: [
+                                  //         const Text(
+                                  //           'Quick Actions',
+                                  //           style: TextStyle(
+                                  //             fontSize: 18,
+                                  //             fontWeight: FontWeight.w600,
+                                  //           ),
+                                  //         ),
+                                  //         const SizedBox(
+                                  //           height: 8,
+                                  //         ),
+                                  //         const Text(
+                                  //           'Manage your farm activities and tasks with ease using our quick action buttons below.',
+                                  //           style: TextStyle(
+                                  //             fontSize: 14,
+                                  //             fontWeight: FontWeight.w500,
+                                  //           ),
+                                  //         ),
+                                  //         const SizedBox(
+                                  //           height: 20,
+                                  //         ),
+                                  //         Row(
+                                  //           mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                  //           children: [
+                                  //             Expanded(
+                                  //               child: ElevatedButton(
+                                  //                 onPressed: () {},
+                                  //                 child: const Text(
+                                  //                   'Manage Crops',
+                                  //                 ),
+                                  //               ),
+                                  //             ),
+                                  //             const SizedBox(
+                                  //               width: 16,
+                                  //             ),
+                                  //             Expanded(
+                                  //               child: ElevatedButton(
+                                  //                 onPressed: () {},
+                                  //                 child: const Text(
+                                  //                   'View Reports',
+                                  //                 ),
+                                  //               ),
+                                  //             ),
+                                  //             const SizedBox(
+                                  //               width: 16,
+                                  //             ),
+                                  //             Expanded(
+                                  //               child: ElevatedButton(
+                                  //                 onPressed: () {
+                                  //                   _newTaskDialog(
+                                  //                     context,
+                                  //                   );
+                                  //                 },
+                                  //                 child: const Text(
+                                  //                   'Schedule Tasks',
+                                  //                 ),
+                                  //               ),
+                                  //             ),
+                                  //           ],
+                                  //         ),
+                                  //       ],
+                                  //     ),
+                                  //   ),
+                                  // ),
                                   Row(
                                     children: [
                                       Expanded(
