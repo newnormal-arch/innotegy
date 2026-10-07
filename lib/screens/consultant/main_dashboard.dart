@@ -59,37 +59,37 @@ class _MainConsultantDashboardState
                       ),
                     ],
                   ),
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.end,
-                    children: [
-                      ElevatedButton(
-                        onPressed: () {
-                          _newConsultantTaskDialog(
-                            context,
-                          );
-                        },
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: primaryGreenColor,
-                          padding: EdgeInsets.symmetric(
-                            horizontal: 40,
-                            vertical: 12,
-                          ),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(
-                              8,
-                            ),
-                          ),
-                        ),
-                        child: const Text(
-                          'Add Task',
-                          style: TextStyle(
-                            fontWeight: FontWeight.w600,
-                            color: Colors.white,
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
+                  // Row(
+                  //   mainAxisAlignment: MainAxisAlignment.end,
+                  //   children: [
+                  //     ElevatedButton(
+                  //       onPressed: () {
+                  //         _newConsultantTaskDialog(
+                  //           context,
+                  //         );
+                  //       },
+                  //       style: ElevatedButton.styleFrom(
+                  //         backgroundColor: primaryGreenColor,
+                  //         padding: EdgeInsets.symmetric(
+                  //           horizontal: 40,
+                  //           vertical: 12,
+                  //         ),
+                  //         shape: RoundedRectangleBorder(
+                  //           borderRadius: BorderRadius.circular(
+                  //             8,
+                  //           ),
+                  //         ),
+                  //       ),
+                  //       child: const Text(
+                  //         'Add Task',
+                  //         style: TextStyle(
+                  //           fontWeight: FontWeight.w600,
+                  //           color: Colors.white,
+                  //         ),
+                  //       ),
+                  //     ),
+                  //   ],
+                  // ),
                 ],
               ),
               // Add your dashboard content here
