@@ -1,6 +1,7 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
+import 'package:innotegy/constants.dart';
 
 Widget
 buildTaskList() {
@@ -132,6 +133,10 @@ buildTaskList() {
                                               as Timestamp?)
                                           ?.toDate();
 
+                                  final String taskStatus =
+                                      task['taskStatus'] ??
+                                      'N/A';
+
                                   String formatDate(
                                     DateTime? date,
                                   ) {
@@ -159,10 +164,118 @@ buildTaskList() {
                                         fontSize: 16,
                                       ),
                                     ),
-                                    subtitle: Text(
-                                      'Farm: $farmName\nDuration: ${formatDate(startDate)} - ${formatDate(endDate)}',
-                                      style: const TextStyle(
-                                        fontSize: 13,
+                                    subtitle: Column(
+                                      crossAxisAlignment: CrossAxisAlignment.start,
+                                      children: [
+                                        Text(
+                                          'Farm: $farmName\nDuration: ${formatDate(startDate)} - ${formatDate(endDate)}',
+                                          style: const TextStyle(
+                                            fontSize: 13,
+                                          ),
+                                        ),
+                                        SizedBox(
+                                          height: 8,
+                                        ),
+                                        taskStatus ==
+                                                'Completed'
+                                            ? const Text(
+                                                'Task completed successfully!',
+                                                style: TextStyle(
+                                                  color: Colors.green,
+                                                  fontWeight: FontWeight.bold,
+                                                ),
+                                              )
+                                            : taskStatus ==
+                                                  'In Progress'
+                                            ? TextButton(
+                                                onPressed: () {
+                                                  // Update the task status to "Completed" in Firestore
+                                                  FirebaseFirestore.instance
+                                                      .collection(
+                                                        'tasks',
+                                                      )
+                                                      .doc(
+                                                        taskDocs[index].id,
+                                                      )
+                                                      .update(
+                                                        {
+                                                          'taskStatus': 'Completed',
+                                                          'isCompleted': true,
+                                                          'taskCompletionDate': Timestamp.now(),
+                                                        },
+                                                      );
+                                                },
+                                                style: TextButton.styleFrom(
+                                                  foregroundColor: Colors.white,
+                                                  backgroundColor: backgroundGreenColor,
+                                                  textStyle: const TextStyle(
+                                                    fontSize: 13,
+                                                  ),
+                                                  padding: const EdgeInsets.symmetric(
+                                                    horizontal: 12,
+                                                    vertical: 6,
+                                                  ),
+                                                  shape: RoundedRectangleBorder(
+                                                    borderRadius: BorderRadius.circular(
+                                                      8,
+                                                    ),
+                                                  ),
+                                                ),
+                                                child: const Text(
+                                                  'Mark as Done',
+                                                ),
+                                              )
+                                            : TextButton(
+                                                onPressed: () {
+                                                  // Update the task status to "In Progress" in Firestore
+                                                  FirebaseFirestore.instance
+                                                      .collection(
+                                                        'tasks',
+                                                      )
+                                                      .doc(
+                                                        taskDocs[index].id,
+                                                      )
+                                                      .update(
+                                                        {
+                                                          'taskStatus': 'In Progress',
+                                                          'taskStartDate': Timestamp.now(),
+                                                        },
+                                                      );
+                                                },
+                                                style: TextButton.styleFrom(
+                                                  foregroundColor: Colors.white,
+                                                  backgroundColor: primaryOliveColor,
+                                                  textStyle: const TextStyle(
+                                                    fontSize: 13,
+                                                  ),
+                                                  padding: const EdgeInsets.symmetric(
+                                                    horizontal: 12,
+                                                    vertical: 6,
+                                                  ),
+                                                  shape: RoundedRectangleBorder(
+                                                    borderRadius: BorderRadius.circular(
+                                                      8,
+                                                    ),
+                                                  ),
+                                                ),
+                                                child: const Text(
+                                                  'Start Task',
+                                                ),
+                                              ),
+                                      ],
+                                    ),
+                                    trailing: Text(
+                                      taskStatus,
+                                      style: TextStyle(
+                                        color:
+                                            taskStatus ==
+                                                'Completed'
+                                            ? Colors.green
+                                            : taskStatus ==
+                                                  'In Progress'
+                                            ? Colors.orange
+                                            : Colors.red,
+                                        fontWeight: FontWeight.bold,
                                       ),
                                     ),
                                   );

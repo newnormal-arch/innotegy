@@ -803,7 +803,7 @@ showAddTaskDialog(
                                                         FirebaseAuth.instance.currentUser?.uid ??
                                                         'unknown',
                                                     'isCompleted': false,
-                                                    'status': 'Not Started',
+                                                    'taskStatus': 'Not Started',
                                                   },
                                                 );
 

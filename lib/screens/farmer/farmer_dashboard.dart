@@ -3,7 +3,6 @@ import 'package:flutter/material.dart';
 import 'package:easy_sidemenu/easy_sidemenu.dart';
 import 'package:flutter_easyloading/flutter_easyloading.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import 'package:innotegy/constants.dart';
 import 'package:innotegy/models/farm_model.dart';
 import 'package:innotegy/screens/auth_screen.dart';
 import 'package:innotegy/services/auth_service.dart';
