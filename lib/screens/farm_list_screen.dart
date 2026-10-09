@@ -143,8 +143,8 @@ class _FarmListScreenState
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text(
-          'My Farms',
+        title: Text(
+          'My Farms (${_farms.length} farms)',
         ),
         actions: [
           IconButton(
