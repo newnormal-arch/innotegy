@@ -262,6 +262,31 @@ buildTaskList() {
                                                   'Start Task',
                                                 ),
                                               ),
+                                        SizedBox(
+                                          height: 8,
+                                        ),
+                                        TextButton(
+                                          onPressed: () {
+                                            showTaskDetailsDialog(
+                                              context,
+                                              task,
+                                            );
+                                          },
+                                          style: TextButton.styleFrom(
+                                            overlayColor: Colors.transparent,
+
+                                            splashFactory: NoSplash.splashFactory,
+                                            textStyle: const TextStyle(
+                                              fontSize: 13,
+                                            ),
+                                            padding: const EdgeInsets.all(
+                                              0,
+                                            ),
+                                          ),
+                                          child: Text(
+                                            'View Details',
+                                          ),
+                                        ),
                                       ],
                                     ),
                                     trailing: Text(
@@ -289,5 +314,66 @@ buildTaskList() {
         ),
       ),
     ],
+  );
+}
+
+void
+showTaskDetailsDialog(
+  BuildContext context,
+  Map<
+    String,
+    dynamic
+  >
+  task,
+) {
+  showDialog(
+    context: context,
+    builder:
+        (
+          BuildContext context,
+        ) {
+          return AlertDialog(
+            title: Text(
+              task['taskName'] ??
+                  'Task Details',
+            ),
+            content: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'Farm: ${task['farmName'] ?? 'N/A'}',
+                ),
+                Text(
+                  'Stage: ${task['stage'] ?? 'N/A'}',
+                ),
+                Text(
+                  'Description: ${task['taskDescription'] ?? 'N/A'}',
+                ),
+                Text(
+                  'Start Date: ${task['startDate'] != null ? (task['startDate'] as Timestamp).toDate().toLocal().toString() : 'N/A'}',
+                ),
+                Text(
+                  'End Date: ${task['endDate'] != null ? (task['endDate'] as Timestamp).toDate().toLocal().toString() : 'N/A'}',
+                ),
+                Text(
+                  'Status: ${task['taskStatus'] ?? 'N/A'}',
+                ),
+              ],
+            ),
+            actions: [
+              TextButton(
+                onPressed: () {
+                  Navigator.of(
+                    context,
+                  ).pop();
+                },
+                child: const Text(
+                  'Close',
+                ),
+              ),
+            ],
+          );
+        },
   );
 }

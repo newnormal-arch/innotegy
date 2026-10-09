@@ -61,6 +61,7 @@ class GeoUtils {
                 4.0)
             .abs();
     return area /
-        10000.0; // Convert m² to hectares
+        10000.0 *
+        2; // Convert m² to hectares
   }
 }

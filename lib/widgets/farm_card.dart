@@ -310,6 +310,7 @@ showAddTaskDialog(
 ) {
   String? selectedStageId;
   String? selectedStageName;
+  TextEditingController taskDescriptionController = TextEditingController();
   String? selectedTaskName;
   List<
     String
@@ -586,7 +587,26 @@ showAddTaskDialog(
                                 height: 16,
                               ),
                             ],
-
+                            // Task Description Input Field
+                            TextFormField(
+                              controller: taskDescriptionController,
+                              maxLines: 3,
+                              decoration: InputDecoration(
+                                labelText: 'Task Description',
+                                border: OutlineInputBorder(
+                                  borderRadius: BorderRadius.circular(
+                                    8,
+                                  ),
+                                ),
+                                prefixIcon: const Icon(
+                                  Icons.description_outlined,
+                                  size: 18,
+                                ),
+                              ),
+                            ),
+                            SizedBox(
+                              height: 16,
+                            ),
                             // Start & End Date Pickers
                             Row(
                               children: [
@@ -790,6 +810,7 @@ showAddTaskDialog(
                                                   {
                                                     'stage': selectedStageName,
                                                     'taskName': selectedTaskName,
+                                                    'taskDescription': taskDescriptionController.text.trim(),
                                                     'startDate': Timestamp.fromDate(
                                                       startDate!,
                                                     ),
