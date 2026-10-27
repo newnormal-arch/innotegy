@@ -1,10 +1,10 @@
+import 'dart:convert';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
+import 'package:http/http.dart' as http;
 import 'package:innotegy/models/farm_model.dart';
-import 'package:innotegy/screens/authentication_screen/sign_in_screen.dart';
 import 'package:innotegy/screens/farm/farm_details_screen.dart';
-import 'package:innotegy/services/authentication_service.dart';
 import 'package:innotegy/services/kml_service.dart';
 import 'package:innotegy/widgets/app_sidebar.dart';
 
@@ -136,9 +136,9 @@ class _FarmerDashboardScreenState
                         builder:
                             (
                               context,
-                              snapshot,
+                              userSnapshot,
                             ) {
-                              if (snapshot.connectionState ==
+                              if (userSnapshot.connectionState ==
                                       ConnectionState.waiting ||
                                   _isLoadingFarms) {
                                 return const Center(
@@ -152,9 +152,9 @@ class _FarmerDashboardScreenState
                                 String
                               >
                               assignedFarmNames = [];
-                              if (snapshot.hasData &&
-                                  snapshot.data!.exists) {
-                                final data = snapshot.data!.data();
+                              if (userSnapshot.hasData &&
+                                  userSnapshot.data!.exists) {
+                                final data = userSnapshot.data!.data();
                                 final rawFarms = data?['farms'];
                                 if (rawFarms
                                     is List) {
@@ -189,29 +189,60 @@ class _FarmerDashboardScreenState
                                     farm.areaInHectares,
                               );
 
-                              return SingleChildScrollView(
-                                padding: const EdgeInsets.all(
-                                  24.0,
-                                ),
-                                child: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    const _HeaderSection(),
-                                    const SizedBox(
-                                      height: 24,
-                                    ),
-                                    _MetricsGrid(
-                                      assignedFarmsCount: userAssignedFarms.length,
-                                      totalAreaHectares: totalAreaHectares,
-                                    ),
-                                    const SizedBox(
-                                      height: 28,
-                                    ),
-                                    _MainContentArea(
-                                      assignedFarms: userAssignedFarms,
-                                    ),
-                                  ],
-                                ),
+                              // Nested StreamBuilder to listen to the user's assigned farmTasks simultaneously
+                              return StreamBuilder<
+                                QuerySnapshot<
+                                  Map<
+                                    String,
+                                    dynamic
+                                  >
+                                >
+                              >(
+                                stream: FirebaseFirestore.instance
+                                    .collection(
+                                      'farmTasks',
+                                    )
+                                    .where(
+                                      'assignedToUid',
+                                      isEqualTo: currentUser.uid,
+                                    )
+                                    .snapshots(),
+                                builder:
+                                    (
+                                      context,
+                                      taskSnapshot,
+                                    ) {
+                                      // Fallback empty list if tasks are still loading or empty
+                                      final userTasks =
+                                          taskSnapshot.data?.docs ??
+                                          [];
+
+                                      return SingleChildScrollView(
+                                        padding: const EdgeInsets.all(
+                                          24.0,
+                                        ),
+                                        child: Column(
+                                          crossAxisAlignment: CrossAxisAlignment.start,
+                                          children: [
+                                            const _HeaderSection(),
+                                            const SizedBox(
+                                              height: 24,
+                                            ),
+                                            _MetricsGrid(
+                                              assignedFarmsCount: userAssignedFarms.length,
+                                              totalAreaHectares: totalAreaHectares,
+                                              userTasks: userTasks, // Passed successfully here
+                                            ),
+                                            const SizedBox(
+                                              height: 28,
+                                            ),
+                                            _MainContentArea(
+                                              assignedFarms: userAssignedFarms,
+                                            ),
+                                          ],
+                                        ),
+                                      );
+                                    },
                               );
                             },
                       ),
@@ -231,16 +262,70 @@ class _MetricsGrid
         StatelessWidget {
   final int assignedFarmsCount;
   final double totalAreaHectares;
+  final List<
+    QueryDocumentSnapshot<
+      Map<
+        String,
+        dynamic
+      >
+    >
+  >
+  userTasks;
 
   const _MetricsGrid({
     required this.assignedFarmsCount,
     required this.totalAreaHectares,
+    required this.userTasks,
   });
 
   @override
   Widget build(
     BuildContext context,
   ) {
+    // 1. Calculate Active Alerts: Tasks not done and ending in < 24 hours or already overdue
+    final now = DateTime.now();
+    final overdueOrNearingCount = userTasks.where(
+      (
+        doc,
+      ) {
+        final data = doc.data();
+        final progress =
+            data['taskProgress'] ??
+            'Not started';
+        if (progress ==
+            'Done - (Review)')
+          return false;
+
+        final Timestamp? endTimestamp = data['endDate'];
+        if (endTimestamp ==
+            null)
+          return false;
+
+        final endDate = endTimestamp.toDate();
+        final difference = endDate.difference(
+          now,
+        );
+
+        // Overdue or less than 24 hours remaining
+        return difference.inHours <
+            24;
+      },
+    ).length;
+
+    // 2. Calculate Completed Tasks
+    final totalTasksCount = userTasks.length;
+    final completedTasksCount = userTasks.where(
+      (
+        doc,
+      ) {
+        final progress =
+            doc.data()['taskProgress'] ??
+            'Not started';
+        return progress ==
+            'Done - (Review)';
+      },
+    ).length;
+
     return LayoutBuilder(
       builder:
           (
@@ -265,6 +350,7 @@ class _MetricsGrid
               mainAxisSpacing: 16,
               childAspectRatio: 2.2,
               children: [
+                // Card 1: Total Allocated Area
                 _MetricCard(
                   title: 'TOTAL ALLOCATED AREA',
                   value: '${totalAreaHectares.toStringAsFixed(1)} Ha',
@@ -277,30 +363,43 @@ class _MetricsGrid
                     0xFF1CB026,
                   ),
                 ),
-                const _MetricCard(
-                  title: 'CROP HEALTH INDEX',
-                  value: '94.2%',
-                  subtext: '↑ +1.2% from last week',
-                  subtextColor: Color(
-                    0xFF1CB026,
-                  ),
-                  icon: Icons.eco_outlined,
-                  iconColor: Color(
-                    0xFF1CB026,
-                  ),
-                ),
-                const _MetricCard(
+                // Card 2: Open-Meteo Weather Widget
+                const _WeatherMetricCard(),
+                // Card 3: Active Alerts (Overdue / Nearing Deadline)
+                _MetricCard(
                   title: 'ACTIVE ALERTS',
-                  value: '03',
-                  subtext: '↓ -2 resolved today',
-                  subtextColor: Colors.red,
+                  value: overdueOrNearingCount.toString().padLeft(
+                    2,
+                    '0',
+                  ),
+                  subtext:
+                      overdueOrNearingCount >
+                          0
+                      ? '⚠️ Task(s) due < 24h or overdue'
+                      : 'All tasks on schedule',
+                  subtextColor:
+                      overdueOrNearingCount >
+                          0
+                      ? Colors.red
+                      : const Color(
+                          0xFF1CB026,
+                        ),
                   icon: Icons.warning_amber_rounded,
-                  iconColor: Colors.black,
+                  iconColor:
+                      overdueOrNearingCount >
+                          0
+                      ? Colors.red
+                      : Colors.black,
                 ),
-                const _MetricCard(
+                // Card 4: Completed Tasks Ratio
+                _MetricCard(
                   title: 'COMPLETED TASKS',
-                  value: '18/24',
-                  subtext: '• 75% completion rate',
+                  value: '$completedTasksCount/$totalTasksCount',
+                  subtext:
+                      totalTasksCount ==
+                          0
+                      ? '0% completion rate'
+                      : '• ${((completedTasksCount / totalTasksCount) * 100).toStringAsFixed(0)}% completion rate',
                   subtextColor: Colors.grey,
                   icon: Icons.access_time_rounded,
                   iconColor: Colors.grey,
@@ -308,6 +407,209 @@ class _MetricsGrid
               ],
             );
           },
+    );
+  }
+}
+
+/// Weather Card fetching live Open-Meteo Data (Default coordinates set to South Africa / Central region)
+class _WeatherMetricCard
+    extends
+        StatefulWidget {
+  const _WeatherMetricCard();
+
+  @override
+  State<
+    _WeatherMetricCard
+  >
+  createState() => _WeatherMetricCardState();
+}
+
+class _WeatherMetricCardState
+    extends
+        State<
+          _WeatherMetricCard
+        > {
+  bool _isLoading = true;
+  double _temperature = 0.0;
+  double _precipitationProbability = 0.0;
+  double _precipitationAccumulation = 0.0;
+  String _errorMessage = '';
+
+  @override
+  void initState() {
+    super.initState();
+    _fetchWeatherData();
+  }
+
+  Future<
+    void
+  >
+  _fetchWeatherData() async {
+    try {
+      // Open-Meteo API endpoint for current weather and hourly rain probability/accumulation
+      // Coordinates set to a standard regional farm zone (-26.2041, 28.0473 as default reference)
+      final url = Uri.parse(
+        'https://api.open-meteo.com/v1/forecast?latitude=-26.2041&longitude=28.0473&current=temperature_2m&hourly=precipitation_probability,precipitation',
+      );
+
+      final response = await http.get(
+        url,
+      );
+      if (response.statusCode ==
+          200) {
+        final data = json.decode(
+          response.body,
+        );
+        final currentTemp =
+            data['current']['temperature_2m'] ??
+            0.0;
+
+        // Grab current hour index precipitation metrics
+        final hourly = data['hourly'];
+        final List<
+          dynamic
+        >
+        probs =
+            hourly['precipitation_probability'] ??
+            [
+              0.0,
+            ];
+        final List<
+          dynamic
+        >
+        precip =
+            hourly['precipitation'] ??
+            [
+              0.0,
+            ];
+
+        if (mounted) {
+          setState(
+            () {
+              _temperature = currentTemp.toDouble();
+              _precipitationProbability =
+                  (probs.isNotEmpty
+                          ? probs[0]
+                          : 0.0)
+                      .toDouble();
+              _precipitationAccumulation =
+                  (precip.isNotEmpty
+                          ? precip[0]
+                          : 0.0)
+                      .toDouble();
+              _isLoading = false;
+            },
+          );
+        }
+      } else {
+        if (mounted)
+          setState(
+            () => _isLoading = false,
+          );
+      }
+    } catch (
+      e
+    ) {
+      if (mounted) {
+        setState(
+          () {
+            _isLoading = false;
+            _errorMessage = 'Weather unavailable';
+          },
+        );
+      }
+    }
+  }
+
+  @override
+  Widget build(
+    BuildContext context,
+  ) {
+    return Container(
+      padding: const EdgeInsets.all(
+        16,
+      ),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(
+          12,
+        ),
+        border: Border.all(
+          color: const Color(
+            0xFFEFEFEF,
+          ),
+        ),
+      ),
+      child: _isLoading
+          ? const Center(
+              child: SizedBox(
+                width: 20,
+                height: 20,
+                child: CircularProgressIndicator(
+                  strokeWidth: 2,
+                  color: Color(
+                    0xFF1CB026,
+                  ),
+                ),
+              ),
+            )
+          : _errorMessage.isNotEmpty
+          ? Center(
+              child: Text(
+                _errorMessage,
+                style: const TextStyle(
+                  fontSize: 11,
+                  color: Colors.grey,
+                ),
+              ),
+            )
+          : Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Text(
+                      'LOCAL WEATHER (OPEN-METEO)',
+                      style: TextStyle(
+                        fontSize: 9,
+                        fontWeight: FontWeight.w600,
+                        color: Colors.grey[500],
+                        letterSpacing: 0.5,
+                      ),
+                    ),
+                    const Icon(
+                      Icons.wb_sunny_outlined,
+                      size: 18,
+                      color: Color(
+                        0xFF1CB026,
+                      ),
+                    ),
+                  ],
+                ),
+                Text(
+                  '${_temperature.toStringAsFixed(1)}°C',
+                  style: const TextStyle(
+                    fontSize: 22,
+                    fontWeight: FontWeight.bold,
+                    color: Color(
+                      0xFF1A1A1A,
+                    ),
+                  ),
+                ),
+                Text(
+                  '🌧️ Rain Prob: ${_precipitationProbability.toStringAsFixed(0)}% | Rain: ${_precipitationAccumulation.toStringAsFixed(1)}mm',
+                  style: const TextStyle(
+                    fontSize: 10,
+                    color: Color(
+                      0xFF1CB026,
+                    ),
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+              ],
+            ),
     );
   }
 }
@@ -688,16 +990,383 @@ class _FarmCard
   }
 }
 
-/// Operational Tasks Right Panel
+/// Operational Tasks Right Panel (Dynamic Stream from 'farmTasks')
 class _OperationalTasksSection
     extends
         StatelessWidget {
   const _OperationalTasksSection();
 
+  static const Color primaryColor = Color(
+    0xFF1CB026,
+  );
+
+  /// Pre-Commencement Checklist Dialog
+  void _showPreCommencementChecklist(
+    BuildContext context,
+    String taskId,
+  ) {
+    bool checkWeather = false;
+    bool checkEquipment = false;
+    bool checkSafetyGear = false;
+
+    showDialog(
+      context: context,
+      builder:
+          (
+            context,
+          ) {
+            return StatefulBuilder(
+              builder:
+                  (
+                    context,
+                    setDialogState,
+                  ) {
+                    bool canStart =
+                        checkWeather &&
+                        checkEquipment &&
+                        checkSafetyGear;
+
+                    return AlertDialog(
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(
+                          12,
+                        ),
+                      ),
+                      title: const Text(
+                        'Pre-Commencement Checklist',
+                        style: TextStyle(
+                          fontSize: 18,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                      content: SizedBox(
+                        width: 400,
+                        child: Column(
+                          mainAxisSize: MainAxisSize.min,
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            const Text(
+                              'Complete safety and readiness checks before starting:',
+                              style: TextStyle(
+                                fontSize: 13,
+                                color: Colors.grey,
+                              ),
+                            ),
+                            const SizedBox(
+                              height: 16,
+                            ),
+                            CheckboxListTile(
+                              title: const Text(
+                                'Weather and field conditions verified safe',
+                                style: TextStyle(
+                                  fontSize: 13,
+                                ),
+                              ),
+                              value: checkWeather,
+                              activeColor: primaryColor,
+                              onChanged:
+                                  (
+                                    val,
+                                  ) => setDialogState(
+                                    () => checkWeather =
+                                        val ??
+                                        false,
+                                  ),
+                            ),
+                            CheckboxListTile(
+                              title: const Text(
+                                'Required equipment/tools inspected & ready',
+                                style: TextStyle(
+                                  fontSize: 13,
+                                ),
+                              ),
+                              value: checkEquipment,
+                              activeColor: primaryColor,
+                              onChanged:
+                                  (
+                                    val,
+                                  ) => setDialogState(
+                                    () => checkEquipment =
+                                        val ??
+                                        false,
+                                  ),
+                            ),
+                            CheckboxListTile(
+                              title: const Text(
+                                'Proper safety gear / PPE worn',
+                                style: TextStyle(
+                                  fontSize: 13,
+                                ),
+                              ),
+                              value: checkSafetyGear,
+                              activeColor: primaryColor,
+                              onChanged:
+                                  (
+                                    val,
+                                  ) => setDialogState(
+                                    () => checkSafetyGear =
+                                        val ??
+                                        false,
+                                  ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      actions: [
+                        TextButton(
+                          onPressed: () => Navigator.pop(
+                            context,
+                          ),
+                          child: const Text(
+                            'Cancel',
+                            style: TextStyle(
+                              color: Colors.grey,
+                            ),
+                          ),
+                        ),
+                        ElevatedButton(
+                          onPressed: !canStart
+                              ? null
+                              : () async {
+                                  // Update Firestore task status to In progress
+                                  await FirebaseFirestore.instance
+                                      .collection(
+                                        'farmTasks',
+                                      )
+                                      .doc(
+                                        taskId,
+                                      )
+                                      .update(
+                                        {
+                                          'taskProgress': 'In progress',
+                                          'startedAtByWorker': FieldValue.serverTimestamp(),
+                                        },
+                                      );
+
+                                  if (!context.mounted) return;
+                                  Navigator.pop(
+                                    context,
+                                  );
+                                  ScaffoldMessenger.of(
+                                    context,
+                                  ).showSnackBar(
+                                    const SnackBar(
+                                      backgroundColor: primaryColor,
+                                      content: Text(
+                                        'Task started successfully!',
+                                      ),
+                                    ),
+                                  );
+                                },
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: primaryColor,
+                            elevation: 0,
+                          ),
+                          child: const Text(
+                            'Confirm & Start',
+                            style: TextStyle(
+                              color: Colors.white,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                        ),
+                      ],
+                    );
+                  },
+            );
+          },
+    );
+  }
+
+  /// Post-Completion Checklist Dialog
+  void _showPostCompletionChecklist(
+    BuildContext context,
+    String taskId,
+  ) {
+    bool cleanArea = false;
+    bool storeTools = false;
+    bool reportLogged = false;
+
+    showDialog(
+      context: context,
+      builder:
+          (
+            context,
+          ) {
+            return StatefulBuilder(
+              builder:
+                  (
+                    context,
+                    setDialogState,
+                  ) {
+                    bool canComplete =
+                        cleanArea &&
+                        storeTools &&
+                        reportLogged;
+
+                    return AlertDialog(
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(
+                          12,
+                        ),
+                      ),
+                      title: const Text(
+                        'Post-Completion Checklist',
+                        style: TextStyle(
+                          fontSize: 18,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                      content: SizedBox(
+                        width: 400,
+                        child: Column(
+                          mainAxisSize: MainAxisSize.min,
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            const Text(
+                              'Complete wrap-up verifications before marking task done:',
+                              style: TextStyle(
+                                fontSize: 13,
+                                color: Colors.grey,
+                              ),
+                            ),
+                            const SizedBox(
+                              height: 16,
+                            ),
+                            CheckboxListTile(
+                              title: const Text(
+                                'Work area cleaned and secured',
+                                style: TextStyle(
+                                  fontSize: 13,
+                                ),
+                              ),
+                              value: cleanArea,
+                              activeColor: primaryColor,
+                              onChanged:
+                                  (
+                                    val,
+                                  ) => setDialogState(
+                                    () => cleanArea =
+                                        val ??
+                                        false,
+                                  ),
+                            ),
+                            CheckboxListTile(
+                              title: const Text(
+                                'Tools and equipment returned safely',
+                                style: TextStyle(
+                                  fontSize: 13,
+                                ),
+                              ),
+                              value: storeTools,
+                              activeColor: primaryColor,
+                              onChanged:
+                                  (
+                                    val,
+                                  ) => setDialogState(
+                                    () => storeTools =
+                                        val ??
+                                        false,
+                                  ),
+                            ),
+                            CheckboxListTile(
+                              title: const Text(
+                                'Activity results logged / reported',
+                                style: TextStyle(
+                                  fontSize: 13,
+                                ),
+                              ),
+                              value: reportLogged,
+                              activeColor: primaryColor,
+                              onChanged:
+                                  (
+                                    val,
+                                  ) => setDialogState(
+                                    () => reportLogged =
+                                        val ??
+                                        false,
+                                  ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      actions: [
+                        TextButton(
+                          onPressed: () => Navigator.pop(
+                            context,
+                          ),
+                          child: const Text(
+                            'Cancel',
+                            style: TextStyle(
+                              color: Colors.grey,
+                            ),
+                          ),
+                        ),
+                        ElevatedButton(
+                          onPressed: !canComplete
+                              ? null
+                              : () async {
+                                  // Update Firestore task status to Done - (Review)
+                                  await FirebaseFirestore.instance
+                                      .collection(
+                                        'farmTasks',
+                                      )
+                                      .doc(
+                                        taskId,
+                                      )
+                                      .update(
+                                        {
+                                          'taskProgress': 'Done - (Review)',
+                                          'completedAtByWorker': FieldValue.serverTimestamp(),
+                                        },
+                                      );
+
+                                  if (!context.mounted) return;
+                                  Navigator.pop(
+                                    context,
+                                  );
+                                  ScaffoldMessenger.of(
+                                    context,
+                                  ).showSnackBar(
+                                    const SnackBar(
+                                      backgroundColor: primaryColor,
+                                      content: Text(
+                                        'Task submitted for review!',
+                                      ),
+                                    ),
+                                  );
+                                },
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: primaryColor,
+                            elevation: 0,
+                          ),
+                          child: const Text(
+                            'Complete & Submit',
+                            style: TextStyle(
+                              color: Colors.white,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                        ),
+                      ],
+                    );
+                  },
+            );
+          },
+    );
+  }
+
   @override
   Widget build(
     BuildContext context,
   ) {
+    final currentUser = FirebaseAuth.instance.currentUser;
+
+    if (currentUser ==
+        null) {
+      return const SizedBox.shrink();
+    }
+
     return Container(
       padding: const EdgeInsets.all(
         16,
@@ -716,77 +1385,254 @@ class _OperationalTasksSection
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              const Text(
-                'Operational Tasks',
-                style: TextStyle(
-                  fontSize: 16,
-                  fontWeight: FontWeight.bold,
-                  color: Color(
-                    0xFF1A1A1A,
-                  ),
-                ),
-              ),
-              Container(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 8,
-                  vertical: 2,
-                ),
-                decoration: BoxDecoration(
-                  color: Colors.grey[100],
-                  borderRadius: BorderRadius.circular(
-                    12,
-                  ),
-                ),
-                child: Text(
-                  '2 Pending',
-                  style: TextStyle(
-                    fontSize: 11,
-                    color: Colors.grey[600],
-                    fontWeight: FontWeight.w500,
-                  ),
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(
-            height: 16,
-          ),
-          _TaskCard(
-            icon: Icons.warning_amber_rounded,
-            iconColor: Colors.black,
-            title: 'Irrigation Check',
-            subtitle: 'North Sensor Check',
-            description: 'Manual inspection required before tomorrow\'s irrigation cycle.',
-            actions: [
-              ElevatedButton(
-                onPressed: () {},
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color(
-                    0xFF1CB026,
-                  ),
-                  elevation: 0,
-                  minimumSize: const Size(
-                    80,
-                    32,
-                  ),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(
-                      6,
-                    ),
-                  ),
-                ),
-                child: const Text(
-                  'Mark Done',
-                  style: TextStyle(
-                    fontSize: 12,
-                    color: Colors.white,
-                  ),
-                ),
-              ),
-            ],
+          StreamBuilder<
+            QuerySnapshot<
+              Map<
+                String,
+                dynamic
+              >
+            >
+          >(
+            stream: FirebaseFirestore.instance
+                .collection(
+                  'farmTasks',
+                )
+                .where(
+                  'assignedToUid',
+                  isEqualTo: currentUser.uid,
+                )
+                .snapshots(),
+            builder:
+                (
+                  context,
+                  snapshot,
+                ) {
+                  if (snapshot.connectionState ==
+                      ConnectionState.waiting) {
+                    return const Center(
+                      child: Padding(
+                        padding: EdgeInsets.all(
+                          16.0,
+                        ),
+                        child: CircularProgressIndicator(
+                          color: primaryColor,
+                        ),
+                      ),
+                    );
+                  }
+
+                  final taskDocs =
+                      snapshot.data?.docs ??
+                      [];
+                  final pendingTasks = taskDocs.where(
+                    (
+                      doc,
+                    ) {
+                      final progress =
+                          doc.data()['taskProgress'] ??
+                          'Not started';
+                      return progress !=
+                          'Done - (Review)';
+                    },
+                  ).toList();
+
+                  return Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          const Text(
+                            'Operational Tasks',
+                            style: TextStyle(
+                              fontSize: 16,
+                              fontWeight: FontWeight.bold,
+                              color: Color(
+                                0xFF1A1A1A,
+                              ),
+                            ),
+                          ),
+                          Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 8,
+                              vertical: 2,
+                            ),
+                            decoration: BoxDecoration(
+                              color: Colors.grey[100],
+                              borderRadius: BorderRadius.circular(
+                                12,
+                              ),
+                            ),
+                            child: Text(
+                              '${pendingTasks.length} Pending',
+                              style: TextStyle(
+                                fontSize: 11,
+                                color: Colors.grey[600],
+                                fontWeight: FontWeight.w500,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(
+                        height: 16,
+                      ),
+                      if (taskDocs.isEmpty)
+                        Container(
+                          padding: const EdgeInsets.all(
+                            16,
+                          ),
+                          decoration: BoxDecoration(
+                            color: const Color(
+                              0xFFFAFAFA,
+                            ),
+                            borderRadius: BorderRadius.circular(
+                              8,
+                            ),
+                          ),
+                          child: const Center(
+                            child: Text(
+                              'No assigned tasks found.',
+                              style: TextStyle(
+                                color: Colors.grey,
+                                fontSize: 12,
+                              ),
+                            ),
+                          ),
+                        )
+                      else
+                        ListView.separated(
+                          shrinkWrap: true,
+                          physics: const NeverScrollableScrollPhysics(),
+                          itemCount: taskDocs.length,
+                          separatorBuilder:
+                              (
+                                context,
+                                index,
+                              ) => const SizedBox(
+                                height: 12,
+                              ),
+                          itemBuilder:
+                              (
+                                context,
+                                index,
+                              ) {
+                                final doc = taskDocs[index];
+                                final data = doc.data();
+                                final title =
+                                    data['taskTitle'] ??
+                                    'Task';
+                                final farmName =
+                                    data['farmName'] ??
+                                    'Farm';
+                                final description =
+                                    data['description'] ??
+                                    '';
+                                final progress =
+                                    data['taskProgress'] ??
+                                    'Not started';
+
+                                Widget actionButton;
+                                if (progress ==
+                                    'Not started') {
+                                  actionButton = ElevatedButton(
+                                    onPressed: () => _showPreCommencementChecklist(
+                                      context,
+                                      doc.id,
+                                    ),
+                                    style: ElevatedButton.styleFrom(
+                                      backgroundColor: primaryColor,
+                                      elevation: 0,
+                                      minimumSize: const Size(
+                                        80,
+                                        32,
+                                      ),
+                                      shape: RoundedRectangleBorder(
+                                        borderRadius: BorderRadius.circular(
+                                          6,
+                                        ),
+                                      ),
+                                    ),
+                                    child: const Text(
+                                      'Start Task',
+                                      style: TextStyle(
+                                        fontSize: 12,
+                                        color: Colors.white,
+                                      ),
+                                    ),
+                                  );
+                                } else if (progress ==
+                                    'In progress') {
+                                  actionButton = ElevatedButton(
+                                    onPressed: () => _showPostCompletionChecklist(
+                                      context,
+                                      doc.id,
+                                    ),
+                                    style: ElevatedButton.styleFrom(
+                                      backgroundColor: Colors.amber[800],
+                                      elevation: 0,
+                                      minimumSize: const Size(
+                                        80,
+                                        32,
+                                      ),
+                                      shape: RoundedRectangleBorder(
+                                        borderRadius: BorderRadius.circular(
+                                          6,
+                                        ),
+                                      ),
+                                    ),
+                                    child: const Text(
+                                      'Mark Done',
+                                      style: TextStyle(
+                                        fontSize: 12,
+                                        color: Colors.white,
+                                      ),
+                                    ),
+                                  );
+                                } else {
+                                  actionButton = Container(
+                                    padding: const EdgeInsets.symmetric(
+                                      horizontal: 10,
+                                      vertical: 4,
+                                    ),
+                                    decoration: BoxDecoration(
+                                      color: primaryColor.withOpacity(
+                                        0.1,
+                                      ),
+                                      borderRadius: BorderRadius.circular(
+                                        6,
+                                      ),
+                                    ),
+                                    child: const Text(
+                                      'Under Review',
+                                      style: TextStyle(
+                                        fontSize: 11,
+                                        fontWeight: FontWeight.bold,
+                                        color: primaryColor,
+                                      ),
+                                    ),
+                                  );
+                                }
+
+                                return _TaskCard(
+                                  icon: Icons.task_alt,
+                                  iconColor:
+                                      progress ==
+                                          'In progress'
+                                      ? Colors.amber[800]!
+                                      : primaryColor,
+                                  title: title,
+                                  subtitle: '$farmName • Status: $progress',
+                                  description: description,
+                                  actions: [
+                                    actionButton,
+                                  ],
+                                );
+                              },
+                        ),
+                    ],
+                  );
+                },
           ),
         ],
       ),
@@ -1053,232 +1899,6 @@ class _TopNavBar
                   },
             ),
         ],
-      ),
-    );
-  }
-}
-
-class _SidebarContent
-    extends
-        StatelessWidget {
-  final String activeRoute;
-
-  const _SidebarContent({
-    this.activeRoute = 'Dashboard',
-  });
-
-  Future<
-    void
-  >
-  _handleLogout(
-    BuildContext context,
-  ) async {
-    try {
-      final authService = AuthenticationService();
-      await authService.signOut();
-
-      if (!context.mounted) return;
-
-      // Navigate back to Sign In and clear route stack
-      Navigator.of(
-        context,
-      ).pushAndRemoveUntil(
-        MaterialPageRoute(
-          builder:
-              (
-                context,
-              ) => const SignInScreen(),
-        ),
-        (
-          route,
-        ) => false,
-      );
-    } catch (
-      e
-    ) {
-      if (!context.mounted) return;
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(
-        SnackBar(
-          backgroundColor: Colors.red,
-          content: Text(
-            'Error signing out: $e',
-          ),
-        ),
-      );
-    }
-  }
-
-  @override
-  Widget build(
-    BuildContext context,
-  ) {
-    return Container(
-      decoration: const BoxDecoration(
-        color: Colors.white,
-        border: Border(
-          right: BorderSide(
-            color: Color(
-              0xFFEFEFEF,
-            ),
-          ),
-        ),
-      ),
-      child: Column(
-        children: [
-          // Navigation List Items
-          Expanded(
-            child: ListView(
-              padding: const EdgeInsets.symmetric(
-                vertical: 20,
-                horizontal: 12,
-              ),
-              children: [
-                _SidebarItem(
-                  icon: Icons.grid_view_rounded,
-                  label: 'Dashboard',
-                  isActive:
-                      activeRoute ==
-                      'Dashboard',
-                ),
-                _SidebarItem(
-                  icon: Icons.bar_chart_rounded,
-                  label: 'Reports',
-                  isActive:
-                      activeRoute ==
-                      'Reports',
-                ),
-                _SidebarItem(
-                  icon: Icons.settings_outlined,
-                  label: 'Settings',
-                  isActive:
-                      activeRoute ==
-                      'Settings',
-                ),
-                _SidebarItem(
-                  icon: Icons.map_outlined,
-                  label: 'Farm Details',
-                  isActive:
-                      activeRoute ==
-                      'Farm Details',
-                ),
-              ],
-            ),
-          ),
-
-          const Divider(
-            height: 1,
-            color: Color(
-              0xFFEFEFEF,
-            ),
-          ),
-
-          // Bottom Logout Button
-          Padding(
-            padding: const EdgeInsets.all(
-              12.0,
-            ),
-            child: ListTile(
-              dense: true,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(
-                  8,
-                ),
-              ),
-              leading: const Icon(
-                Icons.logout_rounded,
-                size: 20,
-                color: Colors.red,
-              ),
-              title: const Text(
-                'Logout',
-                style: TextStyle(
-                  fontSize: 13,
-                  fontWeight: FontWeight.bold,
-                  color: Colors.red,
-                ),
-              ),
-              onTap: () => _handleLogout(
-                context,
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _SidebarDrawer
-    extends
-        StatelessWidget {
-  const _SidebarDrawer();
-
-  @override
-  Widget build(
-    BuildContext context,
-  ) {
-    return const Drawer(
-      child: SafeArea(
-        child: _SidebarContent(),
-      ),
-    );
-  }
-}
-
-class _SidebarItem
-    extends
-        StatelessWidget {
-  final IconData icon;
-  final String label;
-  final bool isActive;
-
-  const _SidebarItem({
-    required this.icon,
-    required this.label,
-    this.isActive = false,
-  });
-
-  @override
-  Widget build(
-    BuildContext context,
-  ) {
-    return Container(
-      margin: const EdgeInsets.only(
-        bottom: 4,
-      ),
-      decoration: BoxDecoration(
-        color: isActive
-            ? const Color(
-                0xFFF2F2F2,
-              )
-            : Colors.transparent,
-        borderRadius: BorderRadius.circular(
-          8,
-        ),
-      ),
-      child: ListTile(
-        dense: true,
-        leading: Icon(
-          icon,
-          size: 20,
-          color: isActive
-              ? Colors.black
-              : Colors.grey[600],
-        ),
-        title: Text(
-          label,
-          style: TextStyle(
-            fontSize: 13,
-            fontWeight: isActive
-                ? FontWeight.bold
-                : FontWeight.w500,
-            color: isActive
-                ? Colors.black
-                : Colors.grey[700],
-          ),
-        ),
       ),
     );
   }
