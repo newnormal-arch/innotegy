@@ -693,7 +693,9 @@ class _UsersTableCard
                               decoration: BoxDecoration(
                                 color:
                                     role ==
-                                        'Manager'
+                                            'Owner' ||
+                                        role ==
+                                            'Manager'
                                     ? Colors.purple.withOpacity(
                                         0.1,
                                       )
@@ -714,7 +716,9 @@ class _UsersTableCard
                                   fontWeight: FontWeight.bold,
                                   color:
                                       role ==
-                                          'Manager'
+                                              'Owner' ||
+                                          role ==
+                                              'Manager'
                                       ? Colors.purple
                                       : (role ==
                                                 'Field Worker'
@@ -768,19 +772,84 @@ class _UsersTableCard
                               ],
                             ),
                           ),
-                          // Actions (Delete)
+                          // Actions Popup Menu (Change Role & Delete)
                           DataCell(
-                            IconButton(
+                            PopupMenuButton<
+                              String
+                            >(
                               icon: const Icon(
-                                Icons.delete_outline,
+                                Icons.more_vert,
                                 size: 18,
-                                color: Colors.red,
                               ),
-                              onPressed: () => _confirmDeleteUser(
-                                context,
-                                uid,
-                                fullName,
-                              ),
+                              onSelected:
+                                  (
+                                    value,
+                                  ) {
+                                    if (value ==
+                                        'change_role') {
+                                      _showChangeRoleDialog(
+                                        context,
+                                        uid,
+                                        role,
+                                        fullName,
+                                      );
+                                    } else if (value ==
+                                        'delete') {
+                                      _confirmDeleteUser(
+                                        context,
+                                        uid,
+                                        fullName,
+                                      );
+                                    }
+                                  },
+                              itemBuilder:
+                                  (
+                                    context,
+                                  ) => [
+                                    const PopupMenuItem(
+                                      value: 'change_role',
+                                      child: Row(
+                                        children: [
+                                          Icon(
+                                            Icons.manage_accounts_outlined,
+                                            size: 16,
+                                            color: Colors.blue,
+                                          ),
+                                          SizedBox(
+                                            width: 8,
+                                          ),
+                                          Text(
+                                            'Change User Role',
+                                            style: TextStyle(
+                                              fontSize: 12,
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                    ),
+                                    const PopupMenuItem(
+                                      value: 'delete',
+                                      child: Row(
+                                        children: [
+                                          Icon(
+                                            Icons.delete_outline,
+                                            size: 16,
+                                            color: Colors.red,
+                                          ),
+                                          SizedBox(
+                                            width: 8,
+                                          ),
+                                          Text(
+                                            'Delete User',
+                                            style: TextStyle(
+                                              fontSize: 12,
+                                              color: Colors.red,
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                    ),
+                                  ],
                             ),
                           ),
                         ],
@@ -792,6 +861,188 @@ class _UsersTableCard
             ),
         ],
       ),
+    );
+  }
+
+  /// Dialog to Change User Role
+  void _showChangeRoleDialog(
+    BuildContext context,
+    String uid,
+    String currentRole,
+    String name,
+  ) {
+    String selectedRole =
+        [
+          'Field Worker',
+          'Field Manager',
+          'Admin',
+          'Owner',
+        ].contains(
+          currentRole,
+        )
+        ? currentRole
+        : 'Field Worker';
+
+    showDialog(
+      context: context,
+      builder:
+          (
+            context,
+          ) {
+            return StatefulBuilder(
+              builder:
+                  (
+                    context,
+                    setDialogState,
+                  ) {
+                    return AlertDialog(
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(
+                          12,
+                        ),
+                      ),
+                      title: Text(
+                        'Change Role for $name',
+                        style: const TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                      content: SizedBox(
+                        width: 300,
+                        child: Column(
+                          mainAxisSize: MainAxisSize.min,
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            const Text(
+                              'Select new role:',
+                              style: TextStyle(
+                                fontSize: 12,
+                                color: Colors.grey,
+                              ),
+                            ),
+                            const SizedBox(
+                              height: 12,
+                            ),
+                            DropdownButtonFormField<
+                              String
+                            >(
+                              value: selectedRole,
+                              isExpanded: true,
+                              decoration: InputDecoration(
+                                contentPadding: const EdgeInsets.symmetric(
+                                  horizontal: 12,
+                                  vertical: 10,
+                                ),
+                                border: OutlineInputBorder(
+                                  borderRadius: BorderRadius.circular(
+                                    8,
+                                  ),
+                                ),
+                              ),
+                              items: const [
+                                DropdownMenuItem(
+                                  value: 'Field Worker',
+                                  child: Text(
+                                    'Field Worker',
+                                  ),
+                                ),
+                                DropdownMenuItem(
+                                  value: 'Field Manager',
+                                  child: Text(
+                                    'Field Manager',
+                                  ),
+                                ),
+                                DropdownMenuItem(
+                                  value: 'Admin',
+                                  child: Text(
+                                    'Admin',
+                                  ),
+                                ),
+                                DropdownMenuItem(
+                                  value: 'Owner',
+                                  child: Text(
+                                    'Owner',
+                                  ),
+                                ),
+                              ],
+                              onChanged:
+                                  (
+                                    val,
+                                  ) {
+                                    if (val !=
+                                        null) {
+                                      setDialogState(
+                                        () => selectedRole = val,
+                                      );
+                                    }
+                                  },
+                            ),
+                          ],
+                        ),
+                      ),
+                      actions: [
+                        TextButton(
+                          onPressed: () => Navigator.pop(
+                            context,
+                          ),
+                          child: const Text(
+                            'Cancel',
+                            style: TextStyle(
+                              color: Colors.grey,
+                            ),
+                          ),
+                        ),
+                        ElevatedButton(
+                          onPressed: () async {
+                            await FirebaseFirestore.instance
+                                .collection(
+                                  'users',
+                                )
+                                .doc(
+                                  uid,
+                                )
+                                .update(
+                                  {
+                                    'userRole': selectedRole,
+                                  },
+                                );
+                            if (!context.mounted) return;
+                            Navigator.pop(
+                              context,
+                            );
+                            ScaffoldMessenger.of(
+                              context,
+                            ).showSnackBar(
+                              SnackBar(
+                                backgroundColor: const Color(
+                                  0xFF1CB026,
+                                ),
+                                content: Text(
+                                  'Successfully updated role to $selectedRole',
+                                ),
+                              ),
+                            );
+                          },
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: const Color(
+                              0xFF1CB026,
+                            ),
+                            elevation: 0,
+                          ),
+                          child: const Text(
+                            'Save',
+                            style: TextStyle(
+                              color: Colors.white,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                        ),
+                      ],
+                    );
+                  },
+            );
+          },
     );
   }
 
@@ -834,10 +1085,11 @@ class _UsersTableCard
                         uid,
                       )
                       .delete();
-                  if (context.mounted)
+                  if (context.mounted) {
                     Navigator.pop(
                       context,
                     );
+                  }
                 },
                 style: ElevatedButton.styleFrom(
                   backgroundColor: Colors.red,
@@ -972,172 +1224,6 @@ class _TopNavBar
                   },
             ),
         ],
-      ),
-    );
-  }
-}
-
-class _SidebarDrawer
-    extends
-        StatelessWidget {
-  const _SidebarDrawer();
-
-  @override
-  Widget build(
-    BuildContext context,
-  ) {
-    return const Drawer(
-      child: SafeArea(
-        child: _SidebarContent(
-          activeRoute: 'Users',
-        ),
-      ),
-    );
-  }
-}
-
-class _SidebarContent
-    extends
-        StatelessWidget {
-  final String activeRoute;
-
-  const _SidebarContent({
-    this.activeRoute = 'Users',
-  });
-
-  @override
-  Widget build(
-    BuildContext context,
-  ) {
-    return Container(
-      decoration: const BoxDecoration(
-        color: Colors.white,
-        border: Border(
-          right: BorderSide(
-            color: Color(
-              0xFFEFEFEF,
-            ),
-          ),
-        ),
-      ),
-      child: ListView(
-        padding: const EdgeInsets.symmetric(
-          vertical: 20,
-          horizontal: 12,
-        ),
-        children: [
-          _SidebarItem(
-            icon: Icons.business_center_outlined,
-            label: 'Consultancy',
-            isActive:
-                activeRoute ==
-                'Consultancy',
-            onTap: () {
-              Navigator.pushReplacement(
-                context,
-                MaterialPageRoute(
-                  builder:
-                      (
-                        context,
-                      ) => const ManagerDashboardScreen(),
-                ),
-              );
-            },
-          ),
-          _SidebarItem(
-            icon: Icons.people_alt_outlined,
-            label: 'Users',
-            isActive:
-                activeRoute ==
-                'Users',
-            onTap: () {},
-          ),
-          _SidebarItem(
-            icon: Icons.bar_chart_rounded,
-            label: 'Reports',
-            onTap: () {},
-          ),
-          _SidebarItem(
-            icon: Icons.settings_outlined,
-            label: 'Settings',
-            onTap: () {},
-          ),
-          _SidebarItem(
-            icon: Icons.map_outlined,
-            label: 'Farm Details',
-            onTap: () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder:
-                      (
-                        context,
-                      ) => const FarmScreen(),
-                ),
-              );
-            },
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _SidebarItem
-    extends
-        StatelessWidget {
-  final IconData icon;
-  final String label;
-  final bool isActive;
-  final VoidCallback onTap;
-
-  const _SidebarItem({
-    required this.icon,
-    required this.label,
-    required this.onTap,
-    this.isActive = false,
-  });
-
-  @override
-  Widget build(
-    BuildContext context,
-  ) {
-    return Container(
-      margin: const EdgeInsets.only(
-        bottom: 4,
-      ),
-      decoration: BoxDecoration(
-        color: isActive
-            ? const Color(
-                0xFFF2F2F2,
-              )
-            : Colors.transparent,
-        borderRadius: BorderRadius.circular(
-          8,
-        ),
-      ),
-      child: ListTile(
-        dense: true,
-        leading: Icon(
-          icon,
-          size: 20,
-          color: isActive
-              ? Colors.black
-              : Colors.grey[600],
-        ),
-        title: Text(
-          label,
-          style: TextStyle(
-            fontSize: 13,
-            fontWeight: isActive
-                ? FontWeight.bold
-                : FontWeight.w500,
-            color: isActive
-                ? Colors.black
-                : Colors.grey[700],
-          ),
-        ),
-        onTap: onTap,
       ),
     );
   }
