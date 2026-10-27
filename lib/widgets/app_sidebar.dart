@@ -220,6 +220,17 @@ class AppSidebarContent
                             const TaskManagementScreen(),
                           ),
                         ),
+                        _SidebarItem(
+                          icon: Icons.map_outlined,
+                          label: 'Farm Details',
+                          isActive:
+                              activeRoute ==
+                              'Farm Details',
+                          onTap: () => _navigateTo(
+                            context,
+                            const FarmScreen(),
+                          ),
+                        ),
                       ],
                     );
                   }
@@ -242,17 +253,6 @@ class AppSidebarContent
                             activeRoute ==
                             'Settings',
                         onTap: () {},
-                      ),
-                      _SidebarItem(
-                        icon: Icons.map_outlined,
-                        label: 'Farm Details',
-                        isActive:
-                            activeRoute ==
-                            'Farm Details',
-                        onTap: () => _navigateTo(
-                          context,
-                          const FarmScreen(),
-                        ),
                       ),
                     ],
                   );

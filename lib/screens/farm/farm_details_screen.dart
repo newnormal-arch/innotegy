@@ -1466,16 +1466,20 @@ class _FarmDetailsScreenState
                 String currentStage = 'Not Configured';
 
                 if (docs.isNotEmpty) {
-                  // Find the current active stage or default to the first one
-                  final currentDoc = docs.firstWhere(
-                    (
-                      d,
-                    ) =>
-                        (d.data()['isCurrent'] ??
-                            false) ==
-                        true,
-                    orElse: () => docs.first,
-                  );
+                  // Find the current active stage safely without strict orElse typing issues
+                  final matchingDocs = docs
+                      .where(
+                        (
+                          d,
+                        ) =>
+                            (d.data()['isCurrent'] ??
+                                false) ==
+                            true,
+                      )
+                      .toList();
+                  final currentDoc = matchingDocs.isNotEmpty
+                      ? matchingDocs.first
+                      : docs.first;
                   currentStage =
                       currentDoc.data()['title'] ??
                       'Active';
@@ -1611,7 +1615,7 @@ class _FarmDetailsScreenState
       BuildContext context,
     ) {
       final TextEditingController stageController = TextEditingController();
-      final TextEditingController dateController = TextEditingController();
+      DateTime selectedDate = DateTime.now();
 
       showDialog(
         context: context,
@@ -1619,115 +1623,194 @@ class _FarmDetailsScreenState
             (
               context,
             ) {
-              return AlertDialog(
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(
-                    12,
-                  ),
-                ),
-                title: Text(
-                  'Manage Timeline: ${widget.farm.name}',
-                  style: const TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-                content: SizedBox(
-                  width: 400,
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      TextField(
-                        controller: stageController,
-                        decoration: InputDecoration(
-                          labelText: 'Stage Title (e.g., Fertilization, Flowering)',
-                          border: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(
-                              8,
-                            ),
-                          ),
-                        ),
-                      ),
-                      const SizedBox(
-                        height: 12,
-                      ),
-                      TextField(
-                        controller: dateController,
-                        decoration: InputDecoration(
-                          labelText: 'Target Date / Status (e.g., Apr 15, 2026)',
-                          border: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(
-                              8,
-                            ),
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-                actions: [
-                  TextButton(
-                    onPressed: () => Navigator.pop(
+              return StatefulBuilder(
+                builder:
+                    (
                       context,
-                    ),
-                    child: const Text(
-                      'Cancel',
-                      style: TextStyle(
-                        color: Colors.grey,
-                      ),
-                    ),
-                  ),
-                  ElevatedButton(
-                    onPressed: () async {
-                      final stage = stageController.text.trim();
-                      final date = dateController.text.trim();
+                      setDialogState,
+                    ) {
+                      // Simple date formatter (e.g., "Apr 15, 2026")
+                      String formatDate(
+                        DateTime dt,
+                      ) {
+                        const months = [
+                          'Jan',
+                          'Feb',
+                          'Mar',
+                          'Apr',
+                          'May',
+                          'Jun',
+                          'Jul',
+                          'Aug',
+                          'Sep',
+                          'Oct',
+                          'Nov',
+                          'Dec',
+                        ];
+                        return '${months[dt.month - 1]} ${dt.day}, ${dt.year}';
+                      }
 
-                      if (stage.isNotEmpty &&
-                          date.isNotEmpty) {
-                        await FirebaseFirestore.instance
-                            .collection(
-                              'farmTimelines',
-                            )
-                            .add(
-                              {
-                                'farmName': widget.farm.name,
-                                'title': stage,
-                                'date': date,
-                                'isDone': false,
-                                'isCurrent': false,
-                                'createdAt': FieldValue.serverTimestamp(),
-                              },
-                            );
-
-                        if (!context.mounted) return;
-                        Navigator.pop(
-                          context,
-                        );
-                        ScaffoldMessenger.of(
-                          context,
-                        ).showSnackBar(
-                          const SnackBar(
-                            backgroundColor: primaryColor,
-                            content: Text(
-                              'Crop timeline stage added successfully!',
+                      return AlertDialog(
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(
+                            12,
+                          ),
+                        ),
+                        title: Text(
+                          'Manage Timeline: ${widget.farm.name}',
+                          style: const TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                        content: SizedBox(
+                          width: 400,
+                          child: Column(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              TextField(
+                                controller: stageController,
+                                decoration: InputDecoration(
+                                  labelText: 'Stage Title (e.g., Fertilization, Flowering)',
+                                  border: OutlineInputBorder(
+                                    borderRadius: BorderRadius.circular(
+                                      8,
+                                    ),
+                                  ),
+                                ),
+                              ),
+                              const SizedBox(
+                                height: 16,
+                              ),
+                              // Date Picker Trigger Row
+                              InkWell(
+                                onTap: () async {
+                                  final DateTime? picked = await showDatePicker(
+                                    context: context,
+                                    initialDate: selectedDate,
+                                    firstDate: DateTime(
+                                      2020,
+                                    ),
+                                    lastDate: DateTime(
+                                      2035,
+                                    ),
+                                    builder:
+                                        (
+                                          context,
+                                          child,
+                                        ) {
+                                          return Theme(
+                                            data: ThemeData.light().copyWith(
+                                              colorScheme: const ColorScheme.light(
+                                                primary: primaryColor,
+                                              ),
+                                            ),
+                                            child: child!,
+                                          );
+                                        },
+                                  );
+                                  if (picked !=
+                                      null) {
+                                    setDialogState(
+                                      () {
+                                        selectedDate = picked;
+                                      },
+                                    );
+                                  }
+                                },
+                                child: InputDecorator(
+                                  decoration: InputDecoration(
+                                    labelText: 'Target Date',
+                                    border: OutlineInputBorder(
+                                      borderRadius: BorderRadius.circular(
+                                        8,
+                                      ),
+                                    ),
+                                    suffixIcon: const Icon(
+                                      Icons.calendar_today,
+                                      size: 18,
+                                      color: primaryColor,
+                                    ),
+                                  ),
+                                  child: Text(
+                                    formatDate(
+                                      selectedDate,
+                                    ),
+                                    style: const TextStyle(
+                                      fontSize: 14,
+                                    ),
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                        actions: [
+                          TextButton(
+                            onPressed: () => Navigator.pop(
+                              context,
+                            ),
+                            child: const Text(
+                              'Cancel',
+                              style: TextStyle(
+                                color: Colors.grey,
+                              ),
                             ),
                           ),
-                        );
-                      }
+                          ElevatedButton(
+                            onPressed: () async {
+                              final stage = stageController.text.trim();
+                              final dateStr = formatDate(
+                                selectedDate,
+                              );
+
+                              if (stage.isNotEmpty) {
+                                await FirebaseFirestore.instance
+                                    .collection(
+                                      'farmTimelines',
+                                    )
+                                    .add(
+                                      {
+                                        'farmName': widget.farm.name,
+                                        'title': stage,
+                                        'date': dateStr,
+                                        'isDone': false,
+                                        'isCurrent': false,
+                                        'createdAt': FieldValue.serverTimestamp(),
+                                      },
+                                    );
+
+                                if (!context.mounted) return;
+                                Navigator.pop(
+                                  context,
+                                );
+                                ScaffoldMessenger.of(
+                                  context,
+                                ).showSnackBar(
+                                  const SnackBar(
+                                    backgroundColor: primaryColor,
+                                    content: Text(
+                                      'Crop timeline stage added successfully!',
+                                    ),
+                                  ),
+                                );
+                              }
+                            },
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: primaryColor,
+                              elevation: 0,
+                            ),
+                            child: const Text(
+                              'Add Stage',
+                              style: TextStyle(
+                                color: Colors.white,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                          ),
+                        ],
+                      );
                     },
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: primaryColor,
-                      elevation: 0,
-                    ),
-                    child: const Text(
-                      'Add Stage',
-                      style: TextStyle(
-                        color: Colors.white,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                  ),
-                ],
               );
             },
       );
