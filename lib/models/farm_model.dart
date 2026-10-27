@@ -21,6 +21,28 @@ class FarmModel {
     required this.areaInHectares,
   });
 
+  /// Getter for the farm's center latitude (centroid of points)
+  double get latitude {
+    if (points.isEmpty) return -26.2041;
+    double sumLat = 0.0;
+    for (var p in points) {
+      sumLat += p.latitude;
+    }
+    return sumLat /
+        points.length;
+  }
+
+  /// Getter for the farm's center longitude (centroid of points)
+  double get longitude {
+    if (points.isEmpty) return 28.0473;
+    double sumLng = 0.0;
+    for (var p in points) {
+      sumLng += p.longitude;
+    }
+    return sumLng /
+        points.length;
+  }
+
   /// Factory to instantiate a farm directly from KML Placemark data
   factory FarmModel.fromKmlPlacemark({
     required String id,

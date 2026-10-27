@@ -1,6 +1,9 @@
+import 'dart:convert';
+
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
+import 'package:http/http.dart' as http;
 import 'package:innotegy/models/farm_model.dart';
 import 'package:innotegy/services/authentication_service.dart';
 
@@ -1338,7 +1341,7 @@ class _FarmDetailsScreenState
           ),
           Expanded(
             flex: 3,
-            child: _buildSensorMetricsList(),
+            child: _buildFarmMetricsList(),
           ),
         ],
       );
@@ -1349,7 +1352,7 @@ class _FarmDetailsScreenState
         const SizedBox(
           height: 16,
         ),
-        _buildSensorMetricsList(),
+        _buildFarmMetricsList(),
       ],
     );
   }
@@ -1415,41 +1418,133 @@ class _FarmDetailsScreenState
     );
   }
 
-  Widget _buildSensorMetricsList() {
+  Widget _buildFarmMetricsList() {
+    const Color primaryColor = Color(
+      0xFF1CB026,
+    );
+    final double hectares = widget.farm.areaInHectares;
+
     return Column(
-      children: const [
+      children: [
+        // 1. Spatial Area (From KML polygon calculation)
         _SensorStatCard(
-          title: 'SOIL MOISTURE',
-          value: '28.4%',
-          icon: Icons.water_drop,
+          title: 'TOTAL AREA',
+          value: '${hectares.toStringAsFixed(1)} Ha',
+          icon: Icons.map_outlined,
           color: primaryColor,
         ),
-        SizedBox(
+        const SizedBox(
           height: 10,
         ),
-        _SensorStatCard(
-          title: 'NITROGEN LEVEL',
-          value: '42mg/kg',
-          icon: Icons.science_outlined,
-          color: Colors.blue,
+
+        // 2. Current Lifecycle Stage (Streamed from Firestore farmTimelines)
+        StreamBuilder<
+          QuerySnapshot<
+            Map<
+              String,
+              dynamic
+            >
+          >
+        >(
+          stream: FirebaseFirestore.instance
+              .collection(
+                'farmTimelines',
+              )
+              .where(
+                'farmName',
+                isEqualTo: widget.farm.name,
+              )
+              .snapshots(),
+          builder:
+              (
+                context,
+                snapshot,
+              ) {
+                final docs =
+                    snapshot.data?.docs ??
+                    [];
+                String currentStage = 'Not Configured';
+
+                if (docs.isNotEmpty) {
+                  // Find the current active stage or default to the first one
+                  final currentDoc = docs.firstWhere(
+                    (
+                      d,
+                    ) =>
+                        (d.data()['isCurrent'] ??
+                            false) ==
+                        true,
+                    orElse: () => docs.first,
+                  );
+                  currentStage =
+                      currentDoc.data()['title'] ??
+                      'Active';
+                }
+
+                return _SensorStatCard(
+                  title: 'CURRENT STAGE',
+                  value: currentStage,
+                  icon: Icons.timeline,
+                  color: Colors.blue,
+                );
+              },
         ),
-        SizedBox(
+        const SizedBox(
           height: 10,
         ),
-        _SensorStatCard(
-          title: 'SOIL TEMP',
-          value: '21.5°C',
-          icon: Icons.thermostat,
-          color: Colors.amber,
+
+        // 3. Active Operations / Tasks Count
+        StreamBuilder<
+          QuerySnapshot<
+            Map<
+              String,
+              dynamic
+            >
+          >
+        >(
+          stream: FirebaseFirestore.instance
+              .collection(
+                'farmTasks',
+              )
+              .where(
+                'farmName',
+                isEqualTo: widget.farm.name,
+              )
+              .where(
+                'taskProgress',
+                whereIn: [
+                  'In progress',
+                  'Done - (Review)',
+                ],
+              )
+              .snapshots(),
+          builder:
+              (
+                context,
+                snapshot,
+              ) {
+                final activeCount =
+                    snapshot.data?.docs.length ??
+                    0;
+
+                return _SensorStatCard(
+                  title: 'ACTIVE TASKS',
+                  value: '$activeCount Pending',
+                  icon: Icons.assignment_outlined,
+                  color: Colors.amber.shade800,
+                );
+              },
         ),
-        SizedBox(
+        const SizedBox(
           height: 10,
         ),
+
+        // 4. Map ID / Reference
         _SensorStatCard(
-          title: 'PEST RISK',
-          value: 'Low',
-          icon: Icons.bug_report_outlined,
-          color: Colors.grey,
+          title: 'MAPPING SOURCE',
+          value: 'Google My Maps',
+          icon: Icons.location_on_outlined,
+          color: Colors.purple,
         ),
       ],
     );
@@ -1500,6 +1595,406 @@ class _FarmDetailsScreenState
   }
 
   Widget _buildAnalyticsPanel() {
+    return _AnalyticsPanelWidget(
+      farmName: widget.farm.name,
+      latitude: widget.farm.latitude,
+      longitude: widget.farm.longitude,
+    );
+  }
+
+  Widget _buildCropTimelinePanel() {
+    const Color primaryColor = Color(
+      0xFF1CB026,
+    );
+
+    void showManageTimelineDialog(
+      BuildContext context,
+    ) {
+      final TextEditingController stageController = TextEditingController();
+      final TextEditingController dateController = TextEditingController();
+
+      showDialog(
+        context: context,
+        builder:
+            (
+              context,
+            ) {
+              return AlertDialog(
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(
+                    12,
+                  ),
+                ),
+                title: Text(
+                  'Manage Timeline: ${widget.farm.name}',
+                  style: const TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+                content: SizedBox(
+                  width: 400,
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      TextField(
+                        controller: stageController,
+                        decoration: InputDecoration(
+                          labelText: 'Stage Title (e.g., Fertilization, Flowering)',
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(
+                              8,
+                            ),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(
+                        height: 12,
+                      ),
+                      TextField(
+                        controller: dateController,
+                        decoration: InputDecoration(
+                          labelText: 'Target Date / Status (e.g., Apr 15, 2026)',
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(
+                              8,
+                            ),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                actions: [
+                  TextButton(
+                    onPressed: () => Navigator.pop(
+                      context,
+                    ),
+                    child: const Text(
+                      'Cancel',
+                      style: TextStyle(
+                        color: Colors.grey,
+                      ),
+                    ),
+                  ),
+                  ElevatedButton(
+                    onPressed: () async {
+                      final stage = stageController.text.trim();
+                      final date = dateController.text.trim();
+
+                      if (stage.isNotEmpty &&
+                          date.isNotEmpty) {
+                        await FirebaseFirestore.instance
+                            .collection(
+                              'farmTimelines',
+                            )
+                            .add(
+                              {
+                                'farmName': widget.farm.name,
+                                'title': stage,
+                                'date': date,
+                                'isDone': false,
+                                'isCurrent': false,
+                                'createdAt': FieldValue.serverTimestamp(),
+                              },
+                            );
+
+                        if (!context.mounted) return;
+                        Navigator.pop(
+                          context,
+                        );
+                        ScaffoldMessenger.of(
+                          context,
+                        ).showSnackBar(
+                          const SnackBar(
+                            backgroundColor: primaryColor,
+                            content: Text(
+                              'Crop timeline stage added successfully!',
+                            ),
+                          ),
+                        );
+                      }
+                    },
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: primaryColor,
+                      elevation: 0,
+                    ),
+                    child: const Text(
+                      'Add Stage',
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ),
+                ],
+              );
+            },
+      );
+    }
+
+    return Container(
+      padding: const EdgeInsets.all(
+        16,
+      ),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(
+          12,
+        ),
+        border: Border.all(
+          color: const Color(
+            0xFFEFEFEF,
+          ),
+        ),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              const Text(
+                'Crop Timeline',
+                style: TextStyle(
+                  fontSize: 14,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+              TextButton.icon(
+                onPressed: () => showManageTimelineDialog(
+                  context,
+                ),
+                icon: const Icon(
+                  Icons.add,
+                  size: 14,
+                  color: primaryColor,
+                ),
+                label: const Text(
+                  'Manage',
+                  style: TextStyle(
+                    fontSize: 12,
+                    color: primaryColor,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+                style: TextButton.styleFrom(
+                  padding: EdgeInsets.zero,
+                  minimumSize: const Size(
+                    50,
+                    20,
+                  ),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(
+            height: 16,
+          ),
+          StreamBuilder<
+            QuerySnapshot<
+              Map<
+                String,
+                dynamic
+              >
+            >
+          >(
+            stream: FirebaseFirestore.instance
+                .collection(
+                  'farmTimelines',
+                )
+                .where(
+                  'farmName',
+                  isEqualTo: widget.farm.name,
+                )
+                .snapshots(),
+            builder:
+                (
+                  context,
+                  snapshot,
+                ) {
+                  if (snapshot.connectionState ==
+                      ConnectionState.waiting) {
+                    return const Center(
+                      child: Padding(
+                        padding: EdgeInsets.all(
+                          8.0,
+                        ),
+                        child: CircularProgressIndicator(
+                          strokeWidth: 2,
+                          color: primaryColor,
+                        ),
+                      ),
+                    );
+                  }
+
+                  final docs =
+                      snapshot.data?.docs ??
+                      [];
+
+                  if (docs.isEmpty) {
+                    return const Padding(
+                      padding: EdgeInsets.symmetric(
+                        vertical: 8.0,
+                      ),
+                      child: Text(
+                        'No timeline stages configured. Click "Manage" above to add stages.',
+                        style: TextStyle(
+                          fontSize: 11,
+                          color: Colors.grey,
+                        ),
+                      ),
+                    );
+                  }
+
+                  return ListView.builder(
+                    shrinkWrap: true,
+                    physics: const NeverScrollableScrollPhysics(),
+                    itemCount: docs.length,
+                    itemBuilder:
+                        (
+                          context,
+                          index,
+                        ) {
+                          final doc = docs[index];
+                          final data = doc.data();
+                          final title =
+                              data['title'] ??
+                              'Stage';
+                          final date =
+                              data['date'] ??
+                              '';
+                          final isDone =
+                              data['isDone'] ??
+                              false;
+                          final isCurrent =
+                              data['isCurrent'] ??
+                              (index ==
+                                  0);
+
+                          return Padding(
+                            padding: const EdgeInsets.only(
+                              bottom: 8.0,
+                            ),
+                            child: Row(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Column(
+                                  children: [
+                                    Icon(
+                                      isDone
+                                          ? Icons.check_circle
+                                          : (isCurrent
+                                                ? Icons.radio_button_checked
+                                                : Icons.radio_button_unchecked),
+                                      size: 16,
+                                      color:
+                                          isDone ||
+                                              isCurrent
+                                          ? primaryColor
+                                          : Colors.grey[400],
+                                    ),
+                                    if (index <
+                                        docs.length -
+                                            1)
+                                      Container(
+                                        width: 2,
+                                        height: 20,
+                                        color: Colors.grey[300],
+                                      ),
+                                  ],
+                                ),
+                                const SizedBox(
+                                  width: 12,
+                                ),
+                                Expanded(
+                                  child: Column(
+                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    children: [
+                                      Text(
+                                        title,
+                                        style: TextStyle(
+                                          fontSize: 12,
+                                          fontWeight: isCurrent
+                                              ? FontWeight.bold
+                                              : FontWeight.w500,
+                                        ),
+                                      ),
+                                      Text(
+                                        date,
+                                        style: TextStyle(
+                                          fontSize: 10,
+                                          color: Colors.grey[500],
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                                IconButton(
+                                  icon: const Icon(
+                                    Icons.delete_outline,
+                                    size: 14,
+                                    color: Colors.grey,
+                                  ),
+                                  onPressed: () async {
+                                    await doc.reference.delete();
+                                  },
+                                  tooltip: 'Delete Stage',
+                                ),
+                              ],
+                            ),
+                          );
+                        },
+                  );
+                },
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildWeatherPanel() {
+    return _FarmWeatherPanelContent(
+      latitude: widget.farm.latitude, // Adjust property names if your FarmModel differs (e.g. lat / lon)
+      longitude: widget.farm.longitude,
+    );
+  }
+}
+
+class _AnalyticsPanelWidget
+    extends
+        StatefulWidget {
+  final String farmName;
+  final double latitude;
+  final double longitude;
+
+  const _AnalyticsPanelWidget({
+    required this.farmName,
+    required this.latitude,
+    required this.longitude,
+  });
+
+  @override
+  State<
+    _AnalyticsPanelWidget
+  >
+  createState() => _AnalyticsPanelWidgetState();
+}
+
+class _AnalyticsPanelWidgetState
+    extends
+        State<
+          _AnalyticsPanelWidget
+        > {
+  int _selectedTab = 0; // 0 = Sensor Analytics, 1 = Activity Log
+  static const Color primaryColor = Color(
+    0xFF1CB026,
+  );
+
+  @override
+  Widget build(
+    BuildContext context,
+  ) {
     return Container(
       padding: const EdgeInsets.all(
         20,
@@ -1518,24 +2013,44 @@ class _FarmDetailsScreenState
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Row(
+          // Interactive Tab Header
+          Row(
             children: [
-              Text(
-                'Sensor Analytics',
-                style: TextStyle(
-                  fontSize: 13,
-                  fontWeight: FontWeight.bold,
-                  color: primaryColor,
+              InkWell(
+                onTap: () => setState(
+                  () => _selectedTab = 0,
+                ),
+                child: Text(
+                  'Sensor Analytics',
+                  style: TextStyle(
+                    fontSize: 13,
+                    fontWeight: FontWeight.bold,
+                    color:
+                        _selectedTab ==
+                            0
+                        ? primaryColor
+                        : Colors.grey,
+                  ),
                 ),
               ),
-              SizedBox(
-                width: 20,
+              const SizedBox(
+                width: 24,
               ),
-              Text(
-                'Activity Log',
-                style: TextStyle(
-                  fontSize: 13,
-                  color: Colors.grey,
+              InkWell(
+                onTap: () => setState(
+                  () => _selectedTab = 1,
+                ),
+                child: Text(
+                  'Activity Log',
+                  style: TextStyle(
+                    fontSize: 13,
+                    fontWeight: FontWeight.bold,
+                    color:
+                        _selectedTab ==
+                            1
+                        ? primaryColor
+                        : Colors.grey,
+                  ),
                 ),
               ),
             ],
@@ -1543,127 +2058,216 @@ class _FarmDetailsScreenState
           const Divider(
             height: 24,
           ),
-          const Text(
-            'Real-time Field Monitoring',
-            style: TextStyle(
-              fontSize: 15,
-              fontWeight: FontWeight.bold,
-            ),
-          ),
-          const SizedBox(
-            height: 20,
-          ),
-          Container(
-            height: 220,
-            width: double.infinity,
-            decoration: BoxDecoration(
-              color: const Color(
-                0xFFFAFAFA,
-              ),
-              borderRadius: BorderRadius.circular(
-                8,
+
+          // Tab Content Area
+          if (_selectedTab ==
+              0) ...[
+            const Text(
+              'Real-time Field Monitoring & Weather Trends',
+              style: TextStyle(
+                fontSize: 15,
+                fontWeight: FontWeight.bold,
               ),
             ),
-            child: CustomPaint(
-              painter: _SimpleChartPainter(),
+            const SizedBox(
+              height: 20,
             ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildCropTimelinePanel() {
-    return Container(
-      padding: const EdgeInsets.all(
-        16,
-      ),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(
-          12,
-        ),
-        border: Border.all(
-          color: const Color(
-            0xFFEFEFEF,
-          ),
-        ),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          const Text(
-            'Crop Timeline',
-            style: TextStyle(
-              fontSize: 14,
-              fontWeight: FontWeight.bold,
-            ),
-          ),
-          const SizedBox(
-            height: 16,
-          ),
-          const _TimelineItem(
-            title: 'Seeding',
-            date: 'Mar 15, 2024',
-            isDone: true,
-          ),
-          const _TimelineItem(
-            title: 'Germination',
-            date: 'Mar 28, 2024',
-            isDone: true,
-          ),
-          const _TimelineItem(
-            title: 'Vegetative Growth',
-            date: 'In Progress',
-            isCurrent: true,
-            isLast: true,
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildWeatherPanel() {
-    return Container(
-      padding: const EdgeInsets.all(
-        16,
-      ),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(
-          12,
-        ),
-        border: Border.all(
-          color: const Color(
-            0xFFEFEFEF,
-          ),
-        ),
-      ),
-      child: const Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: [
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                'Local Weather',
-                style: TextStyle(
-                  fontSize: 13,
-                  fontWeight: FontWeight.bold,
+            Container(
+              height: 220,
+              width: double.infinity,
+              decoration: BoxDecoration(
+                color: const Color(
+                  0xFFFAFAFA,
+                ),
+                borderRadius: BorderRadius.circular(
+                  8,
+                ),
+                border: Border.all(
+                  color: const Color(
+                    0xFFEFEFEF,
+                  ),
                 ),
               ),
-              SizedBox(
-                height: 4,
+              child: CustomPaint(
+                painter: _SimpleChartPainter(),
               ),
-              Text(
-                '24°C',
-                style: TextStyle(
-                  fontSize: 22,
-                  fontWeight: FontWeight.bold,
+            ),
+          ] else ...[
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                const Text(
+                  'Farm Operational History',
+                  style: TextStyle(
+                    fontSize: 15,
+                    fontWeight: FontWeight.bold,
+                  ),
                 ),
-              ),
-            ],
-          ),
+                Text(
+                  widget.farmName,
+                  style: TextStyle(
+                    fontSize: 11,
+                    color: Colors.grey[600],
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(
+              height: 16,
+            ),
+            SizedBox(
+              height: 220,
+              child:
+                  StreamBuilder<
+                    QuerySnapshot<
+                      Map<
+                        String,
+                        dynamic
+                      >
+                    >
+                  >(
+                    stream: FirebaseFirestore.instance
+                        .collection(
+                          'farmTasks',
+                        )
+                        .where(
+                          'farmName',
+                          isEqualTo: widget.farmName,
+                        )
+                        .snapshots(),
+                    builder:
+                        (
+                          context,
+                          snapshot,
+                        ) {
+                          if (snapshot.connectionState ==
+                              ConnectionState.waiting) {
+                            return const Center(
+                              child: CircularProgressIndicator(
+                                strokeWidth: 2,
+                                color: primaryColor,
+                              ),
+                            );
+                          }
+
+                          final tasks =
+                              snapshot.data?.docs ??
+                              [];
+
+                          if (tasks.isEmpty) {
+                            return const Center(
+                              child: Text(
+                                'No activity logged for this farm yet.',
+                                style: TextStyle(
+                                  fontSize: 12,
+                                  color: Colors.grey,
+                                ),
+                              ),
+                            );
+                          }
+
+                          return ListView.separated(
+                            shrinkWrap: true,
+                            itemCount: tasks.length,
+                            separatorBuilder:
+                                (
+                                  context,
+                                  index,
+                                ) => const Divider(
+                                  height: 16,
+                                ),
+                            itemBuilder:
+                                (
+                                  context,
+                                  index,
+                                ) {
+                                  final taskData = tasks[index].data();
+                                  final title =
+                                      taskData['taskTitle'] ??
+                                      'Task';
+                                  final progress =
+                                      taskData['taskProgress'] ??
+                                      'Not started';
+                                  final workerName =
+                                      taskData['assignedToName'] ??
+                                      'Unassigned';
+
+                                  Color badgeColor = Colors.grey;
+                                  if (progress ==
+                                      'Done - (Approved)')
+                                    badgeColor = primaryColor;
+                                  if (progress ==
+                                      'Done - (Review)')
+                                    badgeColor = Colors.amber.shade800;
+                                  if (progress ==
+                                      'In progress')
+                                    badgeColor = Colors.blue;
+
+                                  return Row(
+                                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                    children: [
+                                      Row(
+                                        children: [
+                                          const Icon(
+                                            Icons.history_rounded,
+                                            size: 16,
+                                            color: primaryColor,
+                                          ),
+                                          const SizedBox(
+                                            width: 10,
+                                          ),
+                                          Column(
+                                            crossAxisAlignment: CrossAxisAlignment.start,
+                                            children: [
+                                              Text(
+                                                title,
+                                                style: const TextStyle(
+                                                  fontSize: 12,
+                                                  fontWeight: FontWeight.bold,
+                                                ),
+                                              ),
+                                              Text(
+                                                'Worker: $workerName',
+                                                style: TextStyle(
+                                                  fontSize: 10,
+                                                  color: Colors.grey[600],
+                                                ),
+                                              ),
+                                            ],
+                                          ),
+                                        ],
+                                      ),
+                                      Container(
+                                        padding: const EdgeInsets.symmetric(
+                                          horizontal: 8,
+                                          vertical: 3,
+                                        ),
+                                        decoration: BoxDecoration(
+                                          color: badgeColor.withOpacity(
+                                            0.1,
+                                          ),
+                                          borderRadius: BorderRadius.circular(
+                                            6,
+                                          ),
+                                        ),
+                                        child: Text(
+                                          progress,
+                                          style: TextStyle(
+                                            fontSize: 10,
+                                            fontWeight: FontWeight.bold,
+                                            color: badgeColor,
+                                          ),
+                                        ),
+                                      ),
+                                    ],
+                                  );
+                                },
+                          );
+                        },
+                  ),
+            ),
+          ],
         ],
       ),
     );
@@ -1842,9 +2446,8 @@ class _SimpleChartPainter
       ..color = const Color(
         0xFF1CB026,
       )
-      ..strokeWidth = 2
-      ..style = PaintingStyle.stroke;
-
+      ..strokeWidth = 2.5
+      ..style = PaintingStyle.stroke; // Corrected style assignment
     final path1 = Path()
       ..moveTo(
         0,
@@ -1875,4 +2478,210 @@ class _SimpleChartPainter
   bool shouldRepaint(
     covariant CustomPainter oldDelegate,
   ) => false;
+}
+
+class _FarmWeatherPanelContent
+    extends
+        StatefulWidget {
+  final double latitude;
+  final double longitude;
+
+  const _FarmWeatherPanelContent({
+    required this.latitude,
+    required this.longitude,
+  });
+
+  @override
+  State<
+    _FarmWeatherPanelContent
+  >
+  createState() => _FarmWeatherPanelContentState();
+}
+
+class _FarmWeatherPanelContentState
+    extends
+        State<
+          _FarmWeatherPanelContent
+        > {
+  bool _isLoading = true;
+  double _temperature = 0.0;
+  double _rainProbability = 0.0;
+  double _rainAccumulation = 0.0;
+  String _errorMessage = '';
+
+  @override
+  void initState() {
+    super.initState();
+    _fetchFarmWeather();
+  }
+
+  Future<
+    void
+  >
+  _fetchFarmWeather() async {
+    try {
+      // Open-Meteo API query targeting the specific farm coordinates
+      final url = Uri.parse(
+        'https://api.open-meteo.com/v1/forecast?latitude=${widget.latitude}&longitude=${widget.longitude}&current=temperature_2m&hourly=precipitation_probability,precipitation',
+      );
+
+      final response = await http.get(
+        url,
+      );
+      if (response.statusCode ==
+          200) {
+        final data = json.decode(
+          response.body,
+        );
+        final currentTemp =
+            data['current']['temperature_2m'] ??
+            0.0;
+
+        final hourly = data['hourly'];
+        final List<
+          dynamic
+        >
+        probs =
+            hourly['precipitation_probability'] ??
+            [
+              0.0,
+            ];
+        final List<
+          dynamic
+        >
+        precip =
+            hourly['precipitation'] ??
+            [
+              0.0,
+            ];
+
+        if (mounted) {
+          setState(
+            () {
+              _temperature = currentTemp.toDouble();
+              _rainProbability =
+                  (probs.isNotEmpty
+                          ? probs[0]
+                          : 0.0)
+                      .toDouble();
+              _rainAccumulation =
+                  (precip.isNotEmpty
+                          ? precip[0]
+                          : 0.0)
+                      .toDouble();
+              _isLoading = false;
+            },
+          );
+        }
+      } else {
+        if (mounted) {
+          setState(
+            () {
+              _isLoading = false;
+              _errorMessage = 'Unavailable';
+            },
+          );
+        }
+      }
+    } catch (
+      e
+    ) {
+      if (mounted) {
+        setState(
+          () {
+            _isLoading = false;
+            _errorMessage = 'Error';
+          },
+        );
+      }
+    }
+  }
+
+  @override
+  Widget build(
+    BuildContext context,
+  ) {
+    const Color primaryColor = Color(
+      0xFF1CB026,
+    );
+
+    return Container(
+      padding: const EdgeInsets.all(
+        16,
+      ),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(
+          12,
+        ),
+        border: Border.all(
+          color: const Color(
+            0xFFEFEFEF,
+          ),
+        ),
+      ),
+      child: _isLoading
+          ? const Center(
+              child: SizedBox(
+                height: 30,
+                width: 30,
+                child: CircularProgressIndicator(
+                  strokeWidth: 2,
+                  color: primaryColor,
+                ),
+              ),
+            )
+          : _errorMessage.isNotEmpty
+          ? const Text(
+              'Weather data unavailable',
+              style: TextStyle(
+                fontSize: 12,
+                color: Colors.grey,
+              ),
+            )
+          : Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text(
+                      'Farm Local Weather',
+                      style: TextStyle(
+                        fontSize: 13,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    const SizedBox(
+                      height: 4,
+                    ),
+                    Text(
+                      '${_temperature.toStringAsFixed(1)}°C',
+                      style: const TextStyle(
+                        fontSize: 22,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    const SizedBox(
+                      height: 4,
+                    ),
+                    Text(
+                      '🌧️ Rain Prob: ${_rainProbability.toStringAsFixed(0)}% | Rain: ${_rainAccumulation.toStringAsFixed(1)}mm',
+                      style: const TextStyle(
+                        fontSize: 10,
+                        color: primaryColor,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                  ],
+                ),
+                const Icon(
+                  Icons.wb_sunny_outlined,
+                  size: 28,
+                  color: primaryColor,
+                ),
+              ],
+            ),
+    );
+  }
 }
