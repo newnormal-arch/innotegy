@@ -2,7 +2,7 @@ import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_easyloading/flutter_easyloading.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'package:innotegy/screens/auth_screen.dart';
+import 'package:innotegy/screens/authentication_screen/sign_in_screen.dart';
 
 void
 main() async {
@@ -42,7 +42,7 @@ class MyApp
         useMaterial3: true,
         fontFamily: GoogleFonts.openSans().fontFamily,
       ),
-      home: AuthScreen(),
+      home: SignInScreen(),
       builder: EasyLoading.init(),
     );
   }
