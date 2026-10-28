@@ -16,9 +16,7 @@ main() async {
       projectId: 'innotegy-saas',
     ),
   );
-  await FirebaseAuth.instance.setPersistence(
-    Persistence.LOCAL,
-  );
+
   runApp(
     const MyApp(),
   );
