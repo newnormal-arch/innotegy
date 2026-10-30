@@ -172,7 +172,7 @@ class _FarmDetailsScreenState
                                     return DropdownButtonFormField<
                                       String
                                     >(
-                                      value: selectedUserId,
+                                      initialValue: selectedUserId,
                                       isExpanded: true,
                                       hint: const Text(
                                         'Select active user...',
@@ -350,7 +350,6 @@ class _FarmDetailsScreenState
   }
 
   /// Displays the New Task Dialog
-  /// Displays the New Task Dialog
   void _showNewTaskDialog(
     BuildContext context,
   ) {
@@ -492,7 +491,7 @@ class _FarmDetailsScreenState
                                       return DropdownButtonFormField<
                                         String
                                       >(
-                                        value: selectedStageDocId,
+                                        initialValue: selectedStageDocId,
                                         isExpanded: true,
                                         hint: const Text(
                                           'Select Stage...',
@@ -583,7 +582,7 @@ class _FarmDetailsScreenState
                               DropdownButtonFormField<
                                 String
                               >(
-                                value: selectedTaskTitle,
+                                initialValue: selectedTaskTitle,
                                 isExpanded: true,
                                 hint: Text(
                                   selectedStageDocId ==
@@ -898,7 +897,7 @@ class _FarmDetailsScreenState
                                       return DropdownButtonFormField<
                                         String
                                       >(
-                                        value: selectedWorkerId,
+                                        initialValue: selectedWorkerId,
                                         isExpanded: true,
                                         hint: const Text(
                                           'Select Allocated Field Worker...',
@@ -1197,131 +1196,180 @@ class _FarmDetailsScreenState
   Widget _buildHeaderRow(
     BuildContext context,
   ) {
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-      children: [
-        Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
+    final currentUser = FirebaseAuth.instance.currentUser;
+
+    // If no user is logged in, default to hiding the buttons
+    if (currentUser ==
+        null) {
+      return Container();
+    }
+
+    return StreamBuilder<
+      DocumentSnapshot
+    >(
+      stream: FirebaseFirestore.instance
+          .collection(
+            'users',
+          )
+          .doc(
+            currentUser.uid,
+          )
+          .snapshots(),
+      builder:
+          (
+            context,
+            snapshot,
+          ) {
+            // While loading the role, you can hide the buttons or show a tiny loader
+            String userRole = '';
+            if (snapshot.hasData &&
+                snapshot.data!.exists) {
+              final data =
+                  snapshot.data!.data()
+                      as Map<
+                        String,
+                        dynamic
+                      >?;
+              userRole =
+                  data?['userRole'] ??
+                  '';
+            }
+
+            bool isOwner =
+                userRole ==
+                'Owner';
+
+            return Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                Text(
-                  widget.farm.name,
-                  style: const TextStyle(
-                    fontSize: 26,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-                const SizedBox(
-                  width: 10,
-                ),
-                Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 8,
-                    vertical: 2,
-                  ),
-                  decoration: BoxDecoration(
-                    color: primaryColor.withOpacity(
-                      0.15,
+                // Left side: Farm Name & Area (Always visible)
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        Text(
+                          widget.farm.name,
+                          style: const TextStyle(
+                            fontSize: 26,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                        const SizedBox(
+                          width: 10,
+                        ),
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 8,
+                            vertical: 2,
+                          ),
+                          decoration: BoxDecoration(
+                            color: primaryColor.withOpacity(
+                              0.15,
+                            ),
+                            borderRadius: BorderRadius.circular(
+                              4,
+                            ),
+                          ),
+                          child: const Text(
+                            'Active',
+                            style: TextStyle(
+                              fontSize: 11,
+                              fontWeight: FontWeight.bold,
+                              color: primaryColor,
+                            ),
+                          ),
+                        ),
+                      ],
                     ),
-                    borderRadius: BorderRadius.circular(
-                      4,
+                    const SizedBox(
+                      height: 4,
                     ),
-                  ),
-                  child: const Text(
-                    'Active',
-                    style: TextStyle(
-                      fontSize: 11,
-                      fontWeight: FontWeight.bold,
-                      color: primaryColor,
+                    Text(
+                      '📐 ${widget.farm.areaInHectares.toStringAsFixed(2)} Hectares',
+                      style: TextStyle(
+                        fontSize: 12,
+                        color: Colors.grey[600],
+                      ),
                     ),
-                  ),
+                  ],
                 ),
+
+                // Right side: Action buttons (Only visible if isOwner is true)
+                if (isOwner)
+                  Row(
+                    children: [
+                      ElevatedButton.icon(
+                        onPressed: () => _showNewTaskDialog(
+                          context,
+                        ),
+                        icon: const Icon(
+                          Icons.add_task_outlined,
+                          size: 16,
+                          color: Colors.white,
+                        ),
+                        label: const Text(
+                          'New Task',
+                          style: TextStyle(
+                            color: Colors.white,
+                            fontSize: 13,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: primaryColor,
+                          elevation: 0,
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 16,
+                            vertical: 14,
+                          ),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(
+                              8,
+                            ),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(
+                        width: 10,
+                      ),
+                      OutlinedButton.icon(
+                        onPressed: () => _showAllocateUserDialog(
+                          context,
+                        ),
+                        icon: const Icon(
+                          Icons.person_add_alt_1_outlined,
+                          size: 16,
+                          color: primaryColor,
+                        ),
+                        label: const Text(
+                          'Allocate User',
+                          style: TextStyle(
+                            color: primaryColor,
+                            fontSize: 13,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                        style: OutlinedButton.styleFrom(
+                          side: const BorderSide(
+                            color: primaryColor,
+                          ),
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 16,
+                            vertical: 14,
+                          ),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(
+                              8,
+                            ),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
               ],
-            ),
-            const SizedBox(
-              height: 4,
-            ),
-            Text(
-              '📐 ${widget.farm.areaInHectares.toStringAsFixed(2)} Hectares',
-              style: TextStyle(
-                fontSize: 12,
-                color: Colors.grey[600],
-              ),
-            ),
-          ],
-        ),
-        Row(
-          children: [
-            ElevatedButton.icon(
-              onPressed: () => _showNewTaskDialog(
-                context,
-              ),
-              icon: const Icon(
-                Icons.add_task_outlined,
-                size: 16,
-                color: Colors.white,
-              ),
-              label: const Text(
-                'New Task',
-                style: TextStyle(
-                  color: Colors.white,
-                  fontSize: 13,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-              style: ElevatedButton.styleFrom(
-                backgroundColor: primaryColor,
-                elevation: 0,
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 16,
-                  vertical: 14,
-                ),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(
-                    8,
-                  ),
-                ),
-              ),
-            ),
-            const SizedBox(
-              width: 10,
-            ),
-            OutlinedButton.icon(
-              onPressed: () => _showAllocateUserDialog(
-                context,
-              ),
-              icon: const Icon(
-                Icons.person_add_alt_1_outlined,
-                size: 16,
-                color: primaryColor,
-              ),
-              label: const Text(
-                'Allocate User',
-                style: TextStyle(
-                  color: primaryColor,
-                  fontSize: 13,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-              style: OutlinedButton.styleFrom(
-                side: const BorderSide(
-                  color: primaryColor,
-                ),
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 16,
-                  vertical: 14,
-                ),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(
-                    8,
-                  ),
-                ),
-              ),
-            ),
-          ],
-        ),
-      ],
+            );
+          },
     );
   }
 
@@ -2278,14 +2326,17 @@ class _AnalyticsPanelWidgetState
 
                                   Color badgeColor = Colors.grey;
                                   if (progress ==
-                                      'Done - (Approved)')
+                                      'Done - (Approved)') {
                                     badgeColor = primaryColor;
+                                  }
                                   if (progress ==
-                                      'Done - (Review)')
+                                      'Done - (Review)') {
                                     badgeColor = Colors.amber.shade800;
+                                  }
                                   if (progress ==
-                                      'In progress')
+                                      'In progress') {
                                     badgeColor = Colors.blue;
+                                  }
 
                                   return Row(
                                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -2430,89 +2481,6 @@ class _SensorStatCard
           ),
         ],
       ),
-    );
-  }
-}
-
-class _TimelineItem
-    extends
-        StatelessWidget {
-  final String title;
-  final String date;
-  final bool isDone;
-  final bool isCurrent;
-  final bool isLast;
-
-  const _TimelineItem({
-    required this.title,
-    required this.date,
-    this.isDone = false,
-    this.isCurrent = false,
-    this.isLast = false,
-  });
-
-  @override
-  Widget build(
-    BuildContext context,
-  ) {
-    final color =
-        isDone ||
-            isCurrent
-        ? const Color(
-            0xFF1CB026,
-          )
-        : Colors.grey[400]!;
-
-    return Row(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Column(
-          children: [
-            Icon(
-              isDone
-                  ? Icons.check_circle
-                  : (isCurrent
-                        ? Icons.radio_button_checked
-                        : Icons.radio_button_unchecked),
-              size: 16,
-              color: color,
-            ),
-            if (!isLast)
-              Container(
-                width: 2,
-                height: 24,
-                color: Colors.grey[300],
-              ),
-          ],
-        ),
-        const SizedBox(
-          width: 12,
-        ),
-        Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              title,
-              style: TextStyle(
-                fontSize: 12,
-                fontWeight: isCurrent
-                    ? FontWeight.bold
-                    : FontWeight.w500,
-              ),
-            ),
-            Text(
-              date,
-              style: TextStyle(
-                fontSize: 10,
-                color: Colors.grey[500],
-              ),
-            ),
-            const SizedBox(
-              height: 12,
-            ),
-          ],
-        ),
-      ],
     );
   }
 }

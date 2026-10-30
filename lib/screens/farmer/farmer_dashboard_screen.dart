@@ -293,13 +293,15 @@ class _MetricsGrid
             data['taskProgress'] ??
             'Not started';
         if (progress ==
-            'Done - (Review)')
+            'Done - (Review)') {
           return false;
+        }
 
         final Timestamp? endTimestamp = data['endDate'];
         if (endTimestamp ==
-            null)
+            null) {
           return false;
+        }
 
         final endDate = endTimestamp.toDate();
         final difference = endDate.difference(
@@ -502,10 +504,11 @@ class _WeatherMetricCardState
           );
         }
       } else {
-        if (mounted)
+        if (mounted) {
           setState(
             () => _isLoading = false,
           );
+        }
       }
     } catch (
       e

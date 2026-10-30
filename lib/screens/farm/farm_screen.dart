@@ -340,10 +340,11 @@ class _FarmScreenState
                                             val,
                                           ) {
                                             if (val !=
-                                                null)
+                                                null) {
                                               setState(
                                                 () => _selectedSort = val,
                                               );
+                                            }
                                           },
                                     ),
                               ),

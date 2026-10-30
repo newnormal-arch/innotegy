@@ -734,7 +734,7 @@ class _UsersTableCard
                               children: [
                                 Switch(
                                   value: isActive,
-                                  activeColor: const Color(
+                                  activeThumbColor: const Color(
                                     0xFF1CB026,
                                   ),
                                   onChanged:
@@ -927,7 +927,7 @@ class _UsersTableCard
                             DropdownButtonFormField<
                               String
                             >(
-                              value: selectedRole,
+                              initialValue: selectedRole,
                               isExpanded: true,
                               decoration: InputDecoration(
                                 contentPadding: const EdgeInsets.symmetric(

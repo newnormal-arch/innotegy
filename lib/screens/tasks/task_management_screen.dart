@@ -103,10 +103,11 @@ class _TaskManagementScreenState
                               'createdAt': FieldValue.serverTimestamp(),
                             },
                           );
-                      if (context.mounted)
+                      if (context.mounted) {
                         Navigator.pop(
                           context,
                         );
+                      }
                     }
                   },
                   style: ElevatedButton.styleFrom(
@@ -246,10 +247,11 @@ class _TaskManagementScreenState
                             },
                           );
 
-                      if (context.mounted)
+                      if (context.mounted) {
                         Navigator.pop(
                           context,
                         );
+                      }
                     }
                   },
                   style: ElevatedButton.styleFrom(
@@ -314,10 +316,11 @@ class _TaskManagementScreenState
                         stageDocId,
                       )
                       .delete();
-                  if (context.mounted)
+                  if (context.mounted) {
                     Navigator.pop(
                       context,
                     );
+                  }
                 },
                 style: ElevatedButton.styleFrom(
                   backgroundColor: Colors.red,

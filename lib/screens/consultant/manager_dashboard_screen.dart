@@ -710,8 +710,9 @@ class _LeftRequestsSection
   ) {
     final currentUser = FirebaseAuth.instance.currentUser;
     if (currentUser ==
-        null)
+        null) {
       return const SizedBox.shrink();
+    }
 
     // Stream user profile to determine if they are an Owner
     return StreamBuilder<
@@ -1200,8 +1201,9 @@ class _MiddleFarmsSectionState
   ) {
     final currentUser = FirebaseAuth.instance.currentUser;
     if (currentUser ==
-        null)
+        null) {
       return const SizedBox.shrink();
+    }
 
     return StreamBuilder<
       DocumentSnapshot<

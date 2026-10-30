@@ -285,8 +285,8 @@ class _SignInFormSectionState
   // bool _rememberDevice = false;
   bool _obscurePassword = true;
   bool _isLoading = false;
-  TextEditingController _emailController = TextEditingController();
-  TextEditingController _passwordController = TextEditingController();
+  final TextEditingController _emailController = TextEditingController();
+  final TextEditingController _passwordController = TextEditingController();
 
   Future<
     void
