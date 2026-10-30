@@ -2,9 +2,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:innotegy/models/farm_model.dart';
-import 'package:innotegy/screens/consultant/users_screen.dart';
 import 'package:innotegy/screens/farm/farm_details_screen.dart';
-import 'package:innotegy/screens/farm/farm_screen.dart';
 import 'package:innotegy/services/kml_service.dart';
 import 'package:innotegy/widgets/app_sidebar.dart';
 
@@ -633,9 +631,15 @@ class _LeftRequestsSection
                 ),
                 ElevatedButton(
                   onPressed: () async {
+                    final currentUser = FirebaseAuth.instance.currentUser;
                     await taskDoc.reference.update(
                       {
                         'taskProgress': 'Done - (Approved)',
+                        'reviewedBy': currentUser!.uid,
+                        'reviewedByName':
+                            currentUser.displayName ??
+                            'Manager',
+                        'reviewedAt': FieldValue.serverTimestamp(),
                       },
                     );
                     if (!context.mounted) return;

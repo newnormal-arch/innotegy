@@ -395,7 +395,7 @@ class _SignInFormSectionState
               const SnackBar(
                 backgroundColor: primaryGreenColor,
                 content: Text(
-                  'User Role Does not match',
+                  'You have not been assigned a role. Please contact an admin for access.',
                 ),
               ),
             );

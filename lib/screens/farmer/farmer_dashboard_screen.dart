@@ -1427,17 +1427,10 @@ class _OperationalTasksSection
                   final taskDocs =
                       snapshot.data?.docs ??
                       [];
-                  final pendingTasks = taskDocs.where(
-                    (
-                      doc,
-                    ) {
-                      final progress =
-                          doc.data()['taskProgress'] ??
-                          'Not started';
-                      return progress !=
-                          'Done - (Review)';
-                    },
-                  ).toList();
+
+                  // Optionally filter out fully completed archived items if needed,
+                  // or keep them visible so workers see their approval details.
+                  final activeTasks = taskDocs;
 
                   return Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
@@ -1467,7 +1460,7 @@ class _OperationalTasksSection
                               ),
                             ),
                             child: Text(
-                              '${pendingTasks.length} Pending',
+                              '${activeTasks.length} Total',
                               style: TextStyle(
                                 fontSize: 11,
                                 color: Colors.grey[600],
@@ -1592,6 +1585,60 @@ class _OperationalTasksSection
                                       ),
                                     ),
                                   );
+                                } else if (progress ==
+                                    'Done - (Approved)') {
+                                  // Display approval metadata if available
+                                  final approvedBy =
+                                      data['reviewedByName'] ??
+                                      'Manager';
+                                  Timestamp? approvedTimestamp = data['reviewedAt'];
+                                  String formattedDate = '';
+                                  if (approvedTimestamp !=
+                                      null) {
+                                    final dt = approvedTimestamp.toDate();
+                                    formattedDate = '${dt.year}-${dt.month.toString().padLeft(2, '0')}-${dt.day.toString().padLeft(2, '0')} ${dt.hour.toString().padLeft(2, '0')}:${dt.minute.toString().padLeft(2, '0')}';
+                                  }
+
+                                  actionButton = Column(
+                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    children: [
+                                      Container(
+                                        padding: const EdgeInsets.symmetric(
+                                          horizontal: 10,
+                                          vertical: 4,
+                                        ),
+                                        decoration: BoxDecoration(
+                                          color: primaryColor.withOpacity(
+                                            0.1,
+                                          ),
+                                          borderRadius: BorderRadius.circular(
+                                            6,
+                                          ),
+                                        ),
+                                        child: const Text(
+                                          'Completed',
+                                          style: TextStyle(
+                                            fontSize: 11,
+                                            fontWeight: FontWeight.bold,
+                                            color: primaryColor,
+                                          ),
+                                        ),
+                                      ),
+                                      if (formattedDate.isNotEmpty) ...[
+                                        const SizedBox(
+                                          height: 4,
+                                        ),
+                                        Text(
+                                          'Approved by $approvedBy on $formattedDate',
+                                          textAlign: TextAlign.left,
+                                          style: TextStyle(
+                                            fontSize: 10,
+                                            color: Colors.grey[600],
+                                          ),
+                                        ),
+                                      ],
+                                    ],
+                                  );
                                 } else {
                                   actionButton = Container(
                                     padding: const EdgeInsets.symmetric(
@@ -1623,9 +1670,12 @@ class _OperationalTasksSection
                                       progress ==
                                           'In progress'
                                       ? Colors.amber[800]!
-                                      : primaryColor,
+                                      : (progress ==
+                                                'Done - (Approved)'
+                                            ? primaryColor
+                                            : primaryColor),
                                   title: title,
-                                  subtitle: '$farmName • Status: $progress',
+                                  subtitle: '$farmName • $progress',
                                   description: description,
                                   actions: [
                                     actionButton,
