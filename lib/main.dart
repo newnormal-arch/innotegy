@@ -80,8 +80,9 @@ class AuthGate
             }
             final user = snapshot.data;
             if (user ==
-                null)
+                null) {
               return const SignInScreen();
+            }
 
             // Key by uid so a different user always gets a fresh role lookup
             return RoleRouter(
@@ -116,8 +117,8 @@ class _RoleRouterState
         State<
           RoleRouter
         > {
-  // Created once, so rebuilds don't re-hit Firestore
-  late final Future<
+  // Created once, so rebuilds don't open a new listener
+  late final Stream<
     DocumentSnapshot<
       Map<
         String,
@@ -132,13 +133,13 @@ class _RoleRouterState
       .doc(
         widget.user.uid,
       )
-      .get();
+      .snapshots();
 
   @override
   Widget build(
     BuildContext context,
   ) {
-    return FutureBuilder<
+    return StreamBuilder<
       DocumentSnapshot<
         Map<
           String,
@@ -146,20 +147,19 @@ class _RoleRouterState
         >
       >
     >(
-      future: _userDoc,
+      stream: _userDoc,
       builder:
           (
             context,
             snapshot,
           ) {
-            if (snapshot.connectionState !=
-                ConnectionState.done) {
-              return const _LoadingScreen();
-            }
             if (snapshot.hasError) {
               return const _BlockedScreen(
                 message: 'Something went wrong loading your account. Please try again.',
               );
+            }
+            if (!snapshot.hasData) {
+              return const _LoadingScreen();
             }
 
             final doc = snapshot.data!;
