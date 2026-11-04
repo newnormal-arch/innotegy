@@ -1361,7 +1361,7 @@ class _MiddleFarmsSectionState
                     gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
                       crossAxisCount: 2,
                       crossAxisSpacing: 16,
-                      mainAxisSpacing: 16,
+                      mainAxisSpacing: 20,
                       childAspectRatio: 1.4,
                     ),
                     shrinkWrap: true,
@@ -1528,51 +1528,46 @@ class _AssignedFarmCard
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    'ACTIVE CROP',
-                    style: TextStyle(
-                      fontSize: 9,
-                      color: Colors.grey[500],
-                    ),
-                  ),
-                  const SizedBox(
-                    height: 2,
-                  ),
-                  Text(
-                    crop,
-                    style: const TextStyle(
-                      fontSize: 12,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                ],
+              Text(
+                'ACTIVE CROP',
+                style: TextStyle(
+                  fontSize: 9,
+                  color: Colors.grey[500],
+                ),
               ),
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    'HEALTH STATUS',
-                    style: TextStyle(
-                      fontSize: 9,
-                      color: Colors.grey[500],
-                    ),
-                  ),
-                  const SizedBox(
-                    height: 2,
-                  ),
-                  Text(
-                    status,
-                    style: TextStyle(
-                      fontSize: 12,
-                      fontWeight: FontWeight.bold,
-                      color: statusColor,
-                    ),
-                  ),
-                ],
+              const SizedBox(
+                height: 2,
               ),
+              Text(
+                crop,
+                style: const TextStyle(
+                  fontSize: 10,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+              // Column(
+              //   crossAxisAlignment: CrossAxisAlignment.start,
+              //   children: [
+              //     Text(
+              //       'HEALTH STATUS',
+              //       style: TextStyle(
+              //         fontSize: 9,
+              //         color: Colors.grey[500],
+              //       ),
+              //     ),
+              //     const SizedBox(
+              //       height: 2,
+              //     ),
+              //     Text(
+              //       status,
+              //       style: TextStyle(
+              //         fontSize: 12,
+              //         fontWeight: FontWeight.bold,
+              //         color: statusColor,
+              //       ),
+              //     ),
+              //   ],
+              // ),
             ],
           ),
           const SizedBox(
@@ -1623,9 +1618,6 @@ class _AssignedFarmCard
                 ),
               ),
             ],
-          ),
-          SizedBox(
-            height: 4,
           ),
         ],
       ),
