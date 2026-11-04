@@ -293,7 +293,7 @@ class _MetricsGrid
             data['taskProgress'] ??
             'Not started';
         if (progress ==
-            'Done - (Review)') {
+            'Done - (Approved)') {
           return false;
         }
 
@@ -324,7 +324,7 @@ class _MetricsGrid
             doc.data()['taskProgress'] ??
             'Not started';
         return progress ==
-            'Done - (Review)';
+            'Done - (Approved)';
       },
     ).length;
 
@@ -378,7 +378,7 @@ class _MetricsGrid
                       overdueOrNearingCount >
                           0
                       ? '⚠️ Task(s) due < 24h or overdue'
-                      : 'All tasks on schedule',
+                      : 'No active alerts',
                   subtextColor:
                       overdueOrNearingCount >
                           0

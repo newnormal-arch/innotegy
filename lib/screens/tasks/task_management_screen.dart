@@ -425,7 +425,7 @@ class _TaskManagementScreenState
                                   height: 4,
                                 ),
                                 Text(
-                                  'Manage operational stages and expand to view assigned sub-tasks.',
+                                  'Manage operational stages and\nexpand to view assigned sub-tasks.',
                                   style: TextStyle(
                                     fontSize: 13,
                                     color: Colors.grey,

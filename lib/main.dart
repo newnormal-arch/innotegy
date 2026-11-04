@@ -1,4 +1,6 @@
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_core/firebase_core.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_easyloading/flutter_easyloading.dart';
 import 'package:google_fonts/google_fonts.dart';
@@ -15,7 +17,12 @@ main() async {
       projectId: 'innotegy-saas',
     ),
   );
-
+  if (kIsWeb) {
+    // LOCAL = survives browser restarts, SESSION = cleared when the tab closes
+    await FirebaseAuth.instance.setPersistence(
+      Persistence.LOCAL,
+    );
+  }
   runApp(
     const MyApp(),
   );

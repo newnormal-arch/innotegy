@@ -1239,8 +1239,8 @@ class _FarmDetailsScreenState
                 userRole ==
                 'Owner';
 
-            return Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            return Column(
+              // mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 // Left side: Farm Name & Area (Always visible)
                 Column(
@@ -1294,7 +1294,9 @@ class _FarmDetailsScreenState
                     ),
                   ],
                 ),
-
+                const SizedBox(
+                  height: 16,
+                ),
                 // Right side: Action buttons (Only visible if isOwner is true)
                 if (isOwner)
                   Row(

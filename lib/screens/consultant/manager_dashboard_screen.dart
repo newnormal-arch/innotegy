@@ -304,7 +304,7 @@ class _HeaderSection
               height: 4,
             ),
             Text(
-              'Manage your portfolio, schedule visits, and provide expert advice.',
+              'Manage your portfolio, schedule visits,\nand provide expert advice.',
               style: TextStyle(
                 fontSize: 13,
                 color: Colors.grey[600],
@@ -343,40 +343,40 @@ class _HeaderSection
                 ),
               ),
             ),
-            const SizedBox(
-              width: 10,
-            ),
-            ElevatedButton.icon(
-              onPressed: () {},
-              icon: const Icon(
-                Icons.calendar_month,
-                size: 16,
-                color: Colors.white,
-              ),
-              label: const Text(
-                'Schedule New Visit',
-                style: TextStyle(
-                  color: Colors.white,
-                  fontSize: 13,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-              style: ElevatedButton.styleFrom(
-                backgroundColor: const Color(
-                  0xFF1CB026,
-                ),
-                elevation: 0,
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 16,
-                  vertical: 14,
-                ),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(
-                    8,
-                  ),
-                ),
-              ),
-            ),
+            // const SizedBox(
+            //   width: 10,
+            // ),
+            // ElevatedButton.icon(
+            //   onPressed: () {},
+            //   icon: const Icon(
+            //     Icons.calendar_month,
+            //     size: 16,
+            //     color: Colors.white,
+            //   ),
+            //   label: const Text(
+            //     'Schedule New Visit',
+            //     style: TextStyle(
+            //       color: Colors.white,
+            //       fontSize: 13,
+            //       fontWeight: FontWeight.bold,
+            //     ),
+            //   ),
+            //   style: ElevatedButton.styleFrom(
+            //     backgroundColor: const Color(
+            //       0xFF1CB026,
+            //     ),
+            //     elevation: 0,
+            //     padding: const EdgeInsets.symmetric(
+            //       horizontal: 16,
+            //       vertical: 14,
+            //     ),
+            //     shape: RoundedRectangleBorder(
+            //       borderRadius: BorderRadius.circular(
+            //         8,
+            //       ),
+            //     ),
+            //   ),
+            // ),
           ],
         ),
       ],
