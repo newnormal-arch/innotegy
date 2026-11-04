@@ -706,7 +706,7 @@ class _TopNavBar
                         const CircleAvatar(
                           radius: 18,
                           backgroundImage: NetworkImage(
-                            'https://i.pravatar.cc/100?img=68',
+                            'assets/pp.png',
                           ),
                         ),
                       ],
