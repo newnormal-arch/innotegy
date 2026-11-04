@@ -1,11 +1,6 @@
-import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
-import 'package:innotegy/constants.dart';
 import 'package:innotegy/screens/authentication_screen/forgot_password_screen.dart';
 import 'package:innotegy/screens/authentication_screen/sign_up_screen.dart';
-import 'package:innotegy/screens/consultant/manager_dashboard_screen.dart';
-import 'package:innotegy/screens/farmer/farmer_dashboard_screen.dart';
 import 'package:innotegy/services/authentication_service.dart';
 
 class SignInScreen
@@ -48,7 +43,7 @@ class _SignInScreenState
                   child: Column(
                     children: [
                       SizedBox(
-                        height: 450,
+                        height: 500,
                         child: HeroImageSection(),
                       ),
                       Padding(
@@ -292,7 +287,6 @@ class _SignInFormSectionState
     void
   >
   _handleSignIn() async {
-    // Validate input fields first
     final email = _emailController.text.trim();
     final password = _passwordController.text;
 
@@ -315,110 +309,12 @@ class _SignInFormSectionState
     );
 
     try {
-      final authService = AuthenticationService();
-
-      // 1. Authenticate with Firebase Auth
-      final UserCredential credential = await authService.signInWithEmailAndPassword(
+      await AuthenticationService().signInWithEmailAndPassword(
         email: email,
         password: password,
       );
-
-      final user = credential.user;
-
-      if (user !=
-          null) {
-        // 2. Fetch the user's document from Firestore to check 'isActive' status
-        final userDoc = await FirebaseFirestore.instance
-            .collection(
-              'users',
-            )
-            .doc(
-              user.uid,
-            )
-            .get();
-
-        if (userDoc.exists) {
-          final data = userDoc.data();
-          final bool isActive =
-              data?['isActive'] ??
-              false;
-          final String userRole =
-              data?['userRole'] ??
-              '';
-
-          if (!isActive) {
-            // Immediately sign out if the user is inactive
-            await authService.signOut();
-
-            if (!mounted) return;
-            ScaffoldMessenger.of(
-              context,
-            ).showSnackBar(
-              const SnackBar(
-                backgroundColor: Colors.red,
-                content: Text(
-                  'Your account is currently inactive. Please contact an admin for access.',
-                ),
-              ),
-            );
-            return;
-          } else if (userRole ==
-              'Field Worker') {
-            // Navigate to the appropriate dashboard based on user role
-
-            Navigator.pushReplacement(
-              context,
-              MaterialPageRoute(
-                builder:
-                    (
-                      context,
-                    ) => const FarmerDashboardScreen(),
-              ),
-            );
-          } else if (userRole ==
-              'Owner') {
-            // Navigate to the appropriate dashboard based on user role
-            Navigator.pushReplacement(
-              context,
-              MaterialPageRoute(
-                builder:
-                    (
-                      context,
-                    ) => const ManagerDashboardScreen(),
-              ),
-            );
-          } else {
-            // Default routing for other roles
-            ScaffoldMessenger.of(
-              context,
-            ).showSnackBar(
-              const SnackBar(
-                backgroundColor: primaryGreenColor,
-                content: Text(
-                  'You have not been assigned a role. Please contact an admin for access.',
-                ),
-              ),
-            );
-          }
-
-          // 3. Navigate to Dashboard if active
-          if (!mounted) return;
-          ScaffoldMessenger.of(
-            context,
-          ).showSnackBar(
-            const SnackBar(
-              backgroundColor: primaryGreenColor,
-              content: Text(
-                'Logged In successfully. Redirecting to dashboard...',
-              ),
-            ),
-          );
-        } else {
-          throw Exception(
-            'User document not found.',
-          );
-        }
-      }
+      // No navigation needed: AuthGate reacts to the auth change
+      // and shows the right dashboard for the user's role.
     } catch (
       e
     ) {
@@ -470,11 +366,13 @@ class _SignInFormSectionState
         const SizedBox(
           height: 8,
         ),
-        Text(
-          'Select your role to access your personalized dashboard.',
+        const Text(
+          'Access your account to manage farms, tasks, and insights.',
           style: TextStyle(
-            fontSize: 13,
-            color: Colors.grey[600],
+            fontSize: 14,
+            color: Color(
+              0xFF666666,
+            ),
           ),
         ),
         const SizedBox(
