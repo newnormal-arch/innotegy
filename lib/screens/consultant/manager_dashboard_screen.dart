@@ -1624,6 +1624,9 @@ class _AssignedFarmCard
               ),
             ],
           ),
+          SizedBox(
+            height: 4,
+          ),
         ],
       ),
     );
